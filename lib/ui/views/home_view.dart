@@ -209,9 +209,6 @@ class _HomeViewState extends State<HomeView> {
 }
 
 class _categorySection extends StatelessWidget {
-  const _categorySection({
-    super.key,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -280,9 +277,6 @@ class _categorySection extends StatelessWidget {
 }
 
 class _searchField extends StatelessWidget {
-  const _searchField({
-    super.key,
-  });
 
   @override
   Widget build(BuildContext context) {
