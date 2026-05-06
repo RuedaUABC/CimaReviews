@@ -361,7 +361,7 @@ class RegisterUserViewState extends State<RegisterUserView> {
       margin: const EdgeInsets.only(bottom: 27),
       child: TextButton(
         onPressed: () {
-          Navigator.pushNamed(context, '/login');
+          Navigator.pop(context);
         },
         child: Text(
           "Ya tienes una cuenta? Inicia sesion",

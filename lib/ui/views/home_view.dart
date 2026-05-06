@@ -1,3 +1,6 @@
+import 'package:cimareviews/data/models/business.dart';
+import 'package:cimareviews/data/models/category.dart';
+import 'package:cimareviews/ui/viewmodels/home_viewmodel.dart';
 import 'package:flutter/material.dart';
 
 class HomeView extends StatefulWidget {
@@ -10,6 +13,17 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
+  final HomeViewmodel _viewModel = HomeViewmodel();
+  late final List<Business> _businesses;
+  late final List<String> _categoryNames;
+
+  @override
+  void initState() {
+    super.initState();
+    _businesses = _viewModel.getBusinesses();
+    _categoryNames = _viewModel.getCategories();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,7 +31,7 @@ class _HomeViewState extends State<HomeView> {
         child: Column(
           children: [
             _searchField(),
-            _categorySection(),
+            _categorySection(categoryNames: _categoryNames),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,8 +49,9 @@ class _HomeViewState extends State<HomeView> {
                   Expanded(
                     child: ListView.builder(
                       scrollDirection: Axis.vertical,
-                      itemCount: 10,
+                      itemCount: _businesses.length,
                       itemBuilder: (context, index) {
+                        final business = _businesses[index];
                         return Container(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Card(
@@ -47,7 +62,6 @@ class _HomeViewState extends State<HomeView> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Imagen (Container estilizado)
                                 ClipRRect(
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(16),
@@ -66,14 +80,13 @@ class _HomeViewState extends State<HomeView> {
                                     ),
                                   ),
                                 ),
-                                // Contenido de texto
                                 Padding(
                                   padding: const EdgeInsets.all(12),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        _getCardTitle(index),
+                                        _getBusinessTitle(business),
                                         style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -84,7 +97,7 @@ class _HomeViewState extends State<HomeView> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        _getCardSubtitle(index),
+                                        _getBusinessSubtitle(business),
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey[600],
@@ -93,19 +106,17 @@ class _HomeViewState extends State<HomeView> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                      if (_getCardDescription(index).isNotEmpty) ...[
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          _getCardDescription(index),
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[500],
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        _getBusinessDescription(business),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey[500],
+                                          fontStyle: FontStyle.italic,
                                         ),
-                                      ],
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -126,7 +137,6 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  // Funciones helper para los datos de las cards
   Color _getCardColor(int index) {
     final colors = [
       Colors.green.shade400,
@@ -152,63 +162,68 @@ class _HomeViewState extends State<HomeView> {
       Icons.lunch_dining,
       Icons.bakery_dining,
       Icons.ramen_dining,
-      Icons.local_pizza,      // ← Cambiado: Icons.pizza no existe, usar Icons.local_pizza
-      Icons.set_meal,          // ← Cambiado: Icons.sushi no existe, usar Icons.set_meal
+      Icons.local_pizza,
+      Icons.set_meal,
       Icons.breakfast_dining,
     ];
     return icons[index % icons.length];
   }
 
-  String _getCardTitle(int index) {
-    const titles = [
-      "D'Volada",
-      "Chick In",
-      "TORTAS TONKA",
-      "Café Vegano",
-      "Burritos MX",
-      "Sushi House",
-      "Pizza Planet",
-      "Taco Loco",
-      "Green Bowl",
-      "Sweet Home",
-    ];
-    return titles[index % titles.length];
+  String _getBusinessTitle(Business business) {
+    return business.name;
   }
 
-  String _getCardSubtitle(int index) {
-    const subtitles = [
-      "CAFÉ & SMOOTHIES",
-      "Pollo frito",
-      "Recíen hecho mas sabroso.",
-      "Comida saludable",
-      "Comida mexicana",
-      "Comida japonesa",
-      "Pizza artesanal",
-      "Tacos y más",
-      "Comida vegana",
-      "Postres",
-    ];
-    return subtitles[index % subtitles.length];
+  String _getBusinessSubtitle(Business business) {
+    if (business.categories.isEmpty) {
+      return 'Sin categoría';
+    }
+    return business.categories.map(_categoryDisplayName).join(' · ');
   }
 
-  String _getCardDescription(int index) {
-    const descriptions = [
-      "Su tiempo es nuestro tiempo",
-      "El mejor pollo frito de la ciudad",
-      "Hecho al momento con ingredientes frescos",
-      "Para los amantes del café vegano",
-      "Sabores auténticos de México",
-      "Pescado fresco y rolls especiales",
-      "Masa madre y ingredientes premium",
-      "Tacos al pastor, suadero y más",
-      "Comida 100% vegetal",
-      "Los mejores postres artesanales",
-    ];
-    return descriptions[index % descriptions.length];
+  String _getBusinessDescription(Business business) {
+    final reviewCount = business.reviews.length;
+    final reviewText = reviewCount == 0 ? 'Sin reseñas' : '$reviewCount reseñas';
+    return '${business.avgRating.toStringAsFixed(1)} · $reviewText';
+  }
+
+  String _categoryDisplayName(Category category) {
+    switch (category) {
+      case Category.VEGANO:
+        return 'Vegano';
+      case Category.CAFETERIA:
+        return 'Cafetería';
+      case Category.ASIATICA:
+        return 'Asiática';
+      case Category.RAMEN:
+        return 'Ramen';
+      case Category.MEXICANA:
+        return 'Mexicana';
+      case Category.DESAYUNOS:
+        return 'Desayunos';
+      case Category.PANADERIA:
+        return 'Panadería';
+      case Category.SUSHI:
+        return 'Sushi';
+      case Category.PIZZA:
+        return 'Pizza';
+      case Category.HAMBURGUESAS:
+        return 'Hamburguesas';
+      case Category.TACOS:
+        return 'Tacos';
+      case Category.ITALIANA:
+        return 'Italiana';
+      case Category.ENSALADAS:
+        return 'Ensaladas';
+      case Category.POSTRES:
+        return 'Postres';
+    }
   }
 }
 
 class _categorySection extends StatelessWidget {
+  const _categorySection({required this.categoryNames});
+
+  final List<String> categoryNames;
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +245,7 @@ class _categorySection extends StatelessWidget {
           margin: const EdgeInsets.only(top: 8),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: 10,
+            itemCount: categoryNames.length,
             itemBuilder: (context, index) {
               return Container(
                 margin: const EdgeInsets.only(left: 8, right: 8),
@@ -247,7 +262,7 @@ class _categorySection extends StatelessWidget {
                   ),
                   onPressed: () {},
                   child: Text(
-                    _getCategoryName(index),
+                    categoryNames[index],
                     style: const TextStyle(color: Colors.black87),
                   ),
                 ),
@@ -257,22 +272,6 @@ class _categorySection extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _getCategoryName(int index) {
-    const categories = [
-      "Cafés",
-      "Comida rápida",
-      "Restaurantes",
-      "Vegano",
-      "Postres",
-      "Mexicano",
-      "Italiano",
-      "Japonés",
-      "Bebidas",
-      "Desayunos",
-    ];
-    return categories[index % categories.length];
   }
 }
 
