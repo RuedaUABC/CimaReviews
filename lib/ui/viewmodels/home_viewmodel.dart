@@ -26,35 +26,6 @@ class HomeViewmodel {
   }
 
   String _categoryDisplayName(Category category) {
-    switch (category) {
-      case Category.VEGANO:
-        return 'Vegano';
-      case Category.CAFETERIA:
-        return 'Cafeteria';
-      case Category.ASIATICA:
-        return 'Asiatica';
-      case Category.RAMEN:
-        return 'Ramen';
-      case Category.MEXICANA:
-        return 'Mexicana';
-      case Category.DESAYUNOS:
-        return 'Desayunos';
-      case Category.PANADERIA:
-        return 'Panaderia';
-      case Category.SUSHI:
-        return 'Sushi';
-      case Category.PIZZA:
-        return 'Pizza';
-      case Category.HAMBURGUESAS:
-        return 'Hamburguesas';
-      case Category.TACOS:
-        return 'Tacos';
-      case Category.ITALIANA:
-        return 'Italiana';
-      case Category.ENSALADAS:
-        return 'Ensaladas';
-      case Category.POSTRES:
-        return 'Postres';
-    }
+    return category.toString();
   }
 }

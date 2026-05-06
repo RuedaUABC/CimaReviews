@@ -1,8 +1,8 @@
 enum Permission {
-  DELETE_ANY_REVIEW,
-  CREATE_BUSINESS,
-  EDIT_ANY_BUSINESS,
-  DELETE_ANY_BUSINESS,
-  BAN_USER,
-  VIEW_ANALYTICS,
+  deleteAnyReview,
+  createBusiness,
+  editAnyBusiness,
+  deleteAnyBusiness,
+  banUser,
+  viewAnalytics,
 }

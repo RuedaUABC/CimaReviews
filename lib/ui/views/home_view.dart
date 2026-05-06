@@ -1,6 +1,7 @@
 import 'package:cimareviews/data/models/business.dart';
 import 'package:cimareviews/data/models/category.dart';
 import 'package:cimareviews/ui/viewmodels/home_viewmodel.dart';
+import 'package:cimareviews/ui/views/business_details_view.dart';
 import 'package:flutter/material.dart';
 
 class HomeView extends StatefulWidget {
@@ -30,8 +31,8 @@ class _HomeViewState extends State<HomeView> {
       body: SafeArea(
         child: Column(
           children: [
-            _searchField(),
-            _categorySection(categoryNames: _categoryNames),
+            _SearchField(),
+            _CategorySection(categoryNames: _categoryNames),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,14 +55,17 @@ class _HomeViewState extends State<HomeView> {
                         final business = _businesses[index];
                         return Container(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Card(
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => _openBusinessDetails(business),
+                            child: Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                 ClipRRect(
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(16),
@@ -75,7 +79,7 @@ class _HomeViewState extends State<HomeView> {
                                       child: Icon(
                                         _getCardIcon(index),
                                         size: 50,
-                                        color: Colors.white.withOpacity(0.8),
+                                        color: Colors.white,
                                       ),
                                     ),
                                   ),
@@ -123,6 +127,7 @@ class _HomeViewState extends State<HomeView> {
                               ],
                             ),
                           ),
+                          )
                         );
                       },
                     ),
@@ -187,41 +192,22 @@ class _HomeViewState extends State<HomeView> {
   }
 
   String _categoryDisplayName(Category category) {
-    switch (category) {
-      case Category.VEGANO:
-        return 'Vegano';
-      case Category.CAFETERIA:
-        return 'Cafetería';
-      case Category.ASIATICA:
-        return 'Asiática';
-      case Category.RAMEN:
-        return 'Ramen';
-      case Category.MEXICANA:
-        return 'Mexicana';
-      case Category.DESAYUNOS:
-        return 'Desayunos';
-      case Category.PANADERIA:
-        return 'Panadería';
-      case Category.SUSHI:
-        return 'Sushi';
-      case Category.PIZZA:
-        return 'Pizza';
-      case Category.HAMBURGUESAS:
-        return 'Hamburguesas';
-      case Category.TACOS:
-        return 'Tacos';
-      case Category.ITALIANA:
-        return 'Italiana';
-      case Category.ENSALADAS:
-        return 'Ensaladas';
-      case Category.POSTRES:
-        return 'Postres';
-    }
+    return category.toString();
+  }
+
+  void _openBusinessDetails(Business business) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BusinessDetailsView(business: business),
+      ),
+    );
   }
 }
 
-class _categorySection extends StatelessWidget {
-  const _categorySection({required this.categoryNames});
+
+class _CategorySection extends StatelessWidget {
+  const _CategorySection({required this.categoryNames});
 
   final List<String> categoryNames;
 
@@ -275,7 +261,7 @@ class _categorySection extends StatelessWidget {
   }
 }
 
-class _searchField extends StatelessWidget {
+class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {

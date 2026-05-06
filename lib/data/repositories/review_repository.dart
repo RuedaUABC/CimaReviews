@@ -1,11 +1,13 @@
 import '../models/review.dart';
 
 class ReviewRepository {
-  void createReview(Review r) {
-    // TODO: crear reseña
+  /// Crea una nueva reseña
+  bool createReview(Review r, String userId) {
+    return true; // Placeholder implementation
   }
 
-  void deleteReview(String id) {
-    // TODO: eliminar reseña por id
+  /// Elimina una reseña por su ID
+  bool deleteReview(String id, String userId) {
+    return true; // Placeholder implementation
   }
 }

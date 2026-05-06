@@ -1,6 +1,6 @@
 class Session {
-  String _token;
-  bool _active;
+  final String _token;
+  final bool _active;
 
   Session(this._token, this._active);
 

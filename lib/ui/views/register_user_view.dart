@@ -319,9 +319,7 @@ class RegisterUserViewState extends State<RegisterUserView> {
 
   Widget _registerButton() {
     return InkWell(
-      onTap: () {
-        print('Pressed');
-      },
+      onTap: () {},
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),

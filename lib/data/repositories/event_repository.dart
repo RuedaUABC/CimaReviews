@@ -17,7 +17,6 @@ class EventRepository {
   ];
 
   List<Event> getEvents() {
-    // TODO: devolver lista de eventos
     return events;
   }
 }
