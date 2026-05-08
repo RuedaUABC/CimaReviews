@@ -44,10 +44,7 @@ class LoginViewState extends State<LoginView> {
             margin: const EdgeInsets.only(bottom: 34),
             width: 119,
             height: 96,
-            child: Image.network(
-              "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/qVyoVyLVaQ/fzkjbkzd_expires_30_days.png",
-              fit: BoxFit.fill,
-            ),
+            child: Image.asset("images/CimaReviewsIcon.png", fit: BoxFit.contain)
           ),
           Container(
             margin: const EdgeInsets.only(bottom: 22),
