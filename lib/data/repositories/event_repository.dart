@@ -9,11 +9,7 @@ class EventRepository {
       title: 'Evento de comida',
       participants: BusinessRepository.instance.getBusinesses(),
     ),
-    Event(
-      id: '2',
-      title: 'Evento de tecnología',
-      participants: [],
-    ),
+    Event(id: '2', title: 'Evento de tecnología', participants: []),
   ];
 
   List<Event> getEvents() {

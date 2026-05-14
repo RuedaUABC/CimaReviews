@@ -6,13 +6,11 @@ class UserRepository {
     throw UnimplementedError();
   }
 
-  void logout() {
-  }
+  void logout() {}
 
   User getUser(String id) {
     throw UnimplementedError();
   }
 
-  void registerUser(User u) {
-  }
+  void registerUser(User u) {}
 }

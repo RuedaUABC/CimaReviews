@@ -1,4 +1,4 @@
-import 'role.dart';  
+import 'role.dart';
 
 class User {
   String id;

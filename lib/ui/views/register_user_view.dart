@@ -1,373 +1,134 @@
+import 'package:cimareviews/ui/widgets/figma_primitives.dart';
 import 'package:flutter/material.dart';
 
 class RegisterUserView extends StatefulWidget {
   const RegisterUserView({super.key});
 
   @override
-  RegisterUserViewState createState() => RegisterUserViewState();
+  State<RegisterUserView> createState() => _RegisterUserViewState();
 }
 
-class RegisterUserViewState extends State<RegisterUserView> {
-  String name = '';
-  String email = '';
-  String password = '';
-  String selectedRole = 'Cliente';
+class _RegisterUserViewState extends State<RegisterUserView> {
+  bool seller = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Container(
-          constraints: const BoxConstraints.expand(),
-          color: const Color(0xFFFFFFFF),
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                _headerSection(),
-                _nameFieldSection(),
-                _emailFieldSection(),
-                _passwordFieldSection(),
-                _roleSelectionSection(),
-                _registerButton(),
-                _loginLink(),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _headerSection() {
-    return Container(
-      padding: const EdgeInsets.only(top: 65),
-      width: double.infinity,
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.only(bottom: 22),
-            width: 119,
-            height: 96,
-            child: Image.network(
-              "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/qVyoVyLVaQ/n0uyhe4c_expires_30_days.png",
-              fit: BoxFit.fill,
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(bottom: 26),
-            child: const Text(
-              "Registrarse",
-              style: TextStyle(
-                color: Color(0xFF166534),
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _nameFieldSection() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16, left: 32, right: 32),
-      width: double.infinity,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Nombre",
-            style: TextStyle(
-              color: Color(0xFF374151),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: const Color(0xFF000000),
-                width: 1,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              color: const Color(0xFFF9FAFB),
-            ),
-            width: double.infinity,
-            child: TextField(
-              style: const TextStyle(
-                color: Color(0xFF111827),
-                fontSize: 15,
-              ),
-              onChanged: (value) {
-                setState(() {
-                  name = value;
-                });
-              },
-              decoration: const InputDecoration(
-                hintText: "Tu nombre",
-                isDense: true,
-                contentPadding: EdgeInsets.all(16),
-                border: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _emailFieldSection() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16, left: 32, right: 32),
-      width: double.infinity,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Correo",
-            style: TextStyle(
-              color: Color(0xFF374151),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: const Color(0xFF000000),
-                width: 1,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              color: const Color(0xFFF9FAFB),
-            ),
-            width: double.infinity,
-            child: TextField(
-              style: const TextStyle(
-                color: Color(0xFF111827),
-                fontSize: 15,
-              ),
-              onChanged: (value) {
-                setState(() {
-                  email = value;
-                });
-              },
-              decoration: const InputDecoration(
-                hintText: "tu.correo@uabc.edu.mx",
-                isDense: true,
-                contentPadding: EdgeInsets.all(16),
-                border: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _passwordFieldSection() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16, left: 32, right: 32),
-      width: double.infinity,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Contraseña",
-            style: TextStyle(
-              color: Color(0xFF374151),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: const Color(0xFF000000),
-                width: 1,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              color: const Color(0xFFF9FAFB),
-            ),
-            width: double.infinity,
-            child: TextField(
-              style: const TextStyle(
-                color: Color(0xFF111827),
-                fontSize: 15,
-              ),
-              onChanged: (value) {
-                setState(() {
-                  password = value;
-                });
-              },
-              decoration: const InputDecoration(
-                hintText: "••••••••",
-                isDense: true,
-                contentPadding: EdgeInsets.all(16),
-                border: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _roleSelectionSection() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 25, left: 32, right: 32),
-      width: double.infinity,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Soy",
-            style: TextStyle(
-              color: Color(0xFF374151),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
             children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      selectedRole = 'Cliente';
-                    });
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: selectedRole == 'Cliente'
-                          ? const Color(0xFF166534)
-                          : const Color(0xFFF9FAFB),
-                      border: selectedRole == 'Cliente'
-                          ? null
-                          : Border.all(
-                              color: const Color(0xFFE5E7EB),
-                              width: 1,
-                            ),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    margin: const EdgeInsets.only(right: 12),
-                    width: double.infinity,
-                    child: Text(
-                      "Cliente",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: selectedRole == 'Cliente'
-                            ? const Color(0xFFFFFFFF)
-                            : const Color(0xFF374151),
-                        fontSize: 15,
-                      ),
-                    ),
+              const SizedBox(height: 65),
+              Image.asset(
+                'images/CimaReviewsIcon.png',
+                width: 119,
+                height: 96,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 22),
+              const Text(
+                'Registrarse',
+                style: TextStyle(
+                  color: cimaGreen,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: .48,
+                ),
+              ),
+              const SizedBox(height: 26),
+              const FigmaField(label: 'Nombre', hint: 'Tu nombre'),
+              const FigmaField(label: 'Correo', hint: 'tu.correo@uabc.edu.mx'),
+              const FigmaField(
+                label: 'Contrasena',
+                hint: '........',
+                obscure: true,
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Soy',
+                  style: TextStyle(
+                    color: Colors.grey.shade800,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              Expanded(
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      selectedRole = 'Vendedor';
-                    });
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: selectedRole == 'Vendedor'
-                          ? const Color(0xFF166534)
-                          : const Color(0xFFF9FAFB),
-                      border: selectedRole == 'Vendedor'
-                          ? null
-                          : Border.all(
-                              color: const Color(0xFFE5E7EB),
-                              width: 1,
-                            ),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    width: double.infinity,
-                    child: Text(
-                      "Vendedor",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: selectedRole == 'Vendedor'
-                            ? const Color(0xFFFFFFFF)
-                            : const Color(0xFF374151),
-                        fontSize: 15,
-                      ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _RoleButton(
+                      label: 'Cliente',
+                      selected: !seller,
+                      onTap: () => setState(() => seller = false),
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _RoleButton(
+                      label: 'Vendedor',
+                      selected: seller,
+                      onTap: () => setState(() => seller = true),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              FigmaButton(
+                label: 'Registrarse',
+                onPressed: () => Navigator.pushReplacementNamed(
+                  context,
+                  '/register-success',
                 ),
+              ),
+              const SizedBox(height: 14),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Ya tienes una cuenta? Inicia sesion'),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  Widget _registerButton() {
+class _RoleButton extends StatelessWidget {
+  const _RoleButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {},
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
       child: Container(
+        height: 52.5,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
+          color: selected ? cimaGreen : cimaSurface,
+          border: selected ? null : Border.all(color: cimaBorder),
           borderRadius: BorderRadius.circular(12),
-          color: const Color(0xFF166534),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0x0D000000),
-              blurRadius: 2,
-              offset: const Offset(0, 1),
-            ),
-          ],
         ),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        margin: const EdgeInsets.only(bottom: 16, left: 32, right: 32),
-        width: double.infinity,
-        child: TextButton(
-          onPressed: () {
-            Navigator.pushNamed(context, '/login');
-          },
-          child: Text(
-            "Registrarse",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFFFFFFFF),
-              fontSize: 16,
-            fontWeight: FontWeight.bold,
-            ),
-          )
-        ),
-      ),
-    );
-  }
-
-  Widget _loginLink() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      margin: const EdgeInsets.only(bottom: 27),
-      child: TextButton(
-        onPressed: () {
-          Navigator.pop(context);
-        },
         child: Text(
-          "Ya tienes una cuenta? Inicia sesion",
+          label,
           style: TextStyle(
-            color: Color(0xFF166534),
+            color: selected ? Colors.white : const Color(0xFF374151),
             fontSize: 15,
+            fontWeight: FontWeight.w500,
           ),
-        )
+        ),
       ),
     );
   }

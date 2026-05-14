@@ -11,14 +11,15 @@ abstract class Role {
 }
 
 class Admin extends Role {
-  Admin() : super([
-    Permission.deleteAnyReview,
-    Permission.createBusiness,
-    Permission.editAnyBusiness,
-    Permission.deleteAnyBusiness,
-    Permission.banUser,
-    Permission.viewAnalytics,
-  ]);
+  Admin()
+    : super([
+        Permission.deleteAnyReview,
+        Permission.createBusiness,
+        Permission.editAnyBusiness,
+        Permission.deleteAnyBusiness,
+        Permission.banUser,
+        Permission.viewAnalytics,
+      ]);
 }
 
 class UserRole extends Role {
@@ -26,14 +27,9 @@ class UserRole extends Role {
 }
 
 class Moderator extends Role {
-  Moderator() : super([
-    Permission.deleteAnyReview,
-    Permission.viewAnalytics,
-  ]);
+  Moderator() : super([Permission.deleteAnyReview, Permission.viewAnalytics]);
 }
 
 class Seller extends Role {
-  Seller() : super([
-    Permission.createBusiness,
-  ]);
+  Seller() : super([Permission.createBusiness]);
 }

@@ -5,9 +5,5 @@ class Event {
   String title;
   List<Business> participants;
 
-  Event({
-    required this.id,
-    required this.title,
-    required this.participants,
-  });
+  Event({required this.id, required this.title, required this.participants});
 }

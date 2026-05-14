@@ -72,17 +72,6 @@ classDiagram
         +List~Category~ categories
         +String? description
         +double? distance_km
-    }
-    
-    class BusinessDetail {
-        +String id
-        +String name
-        +String owner_id
-        +Location location
-        +double avg_rating
-        +List~Category~ categories
-        +String? description
-        +double? distance_km
         +List~Product~ products
         +List~Review~ reviews
     }
@@ -201,8 +190,8 @@ classDiagram
         
         %% CRUD de negocios
         +Future~List~Business~~ getBusinesses(int skip, int limit)
-        +Future~BusinessDetail~ getBusiness(String id)
-        +Future~BusinessDetail~ createBusiness(
+        +Future~Business~ getBusiness(String id)
+        +Future~Business~ createBusiness(
             String name, 
             String ownerId, 
             Location location, 
@@ -210,7 +199,7 @@ classDiagram
             String? description, 
             List~Product~? products
         )
-        +Future~BusinessDetail~ updateBusiness(
+        +Future~Business~ updateBusiness(
             String id, 
             String? name, 
             Location? location, 
@@ -327,9 +316,9 @@ classDiagram
         
         %% Negocios
         +Future~List~Business~~ getCachedBusinesses()
-        +Future~BusinessDetail?~ getCachedBusiness(String id)
+        +Future~Business?~ getCachedBusiness(String id)
         +Future~void~ cacheBusinesses(List~Business~ businesses)
-        +Future~void~ cacheBusinessDetail(BusinessDetail business)
+        +Future~void~ cacheBusiness(Business business)
         +Future~void~ deleteCachedBusiness(String id)
         
         %% Reseñas
@@ -430,7 +419,7 @@ classDiagram
         -ReviewService _reviewService
         -UserService _userService
         -ReportService _reportService
-        +BusinessDetail? business
+        +Business? business
         +List~Review~ reviews
         +double averageRating
         +bool isLoading
@@ -690,11 +679,8 @@ classDiagram
     Business "1" --> "1" User : pertenece a
     Business "1" --> "many" Review : recibe
     Business "1" --> "many" Report : es referenciado en
-    
-    BusinessDetail "1" *-- "many" Category : categorizado por
-    BusinessDetail "1" *-- "many" Product : tiene
-    BusinessDetail "1" *-- "many" Review : recibe
-    BusinessDetail "1" --> "1" User : pertenece a
+    Business "1" *-- "many" Product : tiene
+
     
     Review "1" --> "1" User : escrito por
     Review "1" --> "1" Business : pertenece a
@@ -707,7 +693,7 @@ classDiagram
     
     Event "1" *-- "many" Business : incluye
     
-    Product "many" --> "1" BusinessDetail : pertenece a
+    Product "many" --> "1" Business : pertenece a
     
     %% ============================
     %% RELATIONSHIPS - SERVICES
