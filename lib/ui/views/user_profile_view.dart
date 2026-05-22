@@ -1,3 +1,4 @@
+import 'package:cimareviews/data/services/auth_service.dart';
 import 'package:cimareviews/ui/viewmodels/user_profile_viewmodel.dart';
 import 'package:cimareviews/ui/widgets/figma_primitives.dart';
 import 'package:cimareviews/ui/widgets/navbar.dart';
@@ -12,6 +13,8 @@ class UserProfileView extends StatefulWidget {
 
 class _UserProfileViewState extends State<UserProfileView> {
   final _viewModel = UserProfileViewModel();
+  final _authService = AuthService();
+  bool _isLoggingOut = false;
 
   @override
   void initState() {
@@ -31,6 +34,18 @@ class _UserProfileViewState extends State<UserProfileView> {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  Future<void> _logout() async {
+    setState(() => _isLoggingOut = true);
+
+    await _authService.logout();
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   @override
@@ -85,6 +100,15 @@ class _UserProfileViewState extends State<UserProfileView> {
                           subtitle: 'Actualiza tu informacion',
                           onTap: () =>
                               Navigator.pushNamed(context, '/dashboard'),
+                        ),
+                        _ProfileMenuItem(
+                          icon: Icons.logout,
+                          title: 'Cerrar sesion',
+                          subtitle: _isLoggingOut
+                              ? 'Cerrando sesion...'
+                              : 'Salir de tu cuenta',
+                          destructive: true,
+                          onTap: _isLoggingOut ? null : _logout,
                         ),
                       ],
                     ),
@@ -177,13 +201,15 @@ class _ProfileMenuItem extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     this.active = false,
+    this.destructive = false,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool active;
+  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
@@ -202,13 +228,30 @@ class _ProfileMenuItem extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: active ? cimaGreen : cimaSurface,
+            color: active
+                ? cimaGreen
+                : destructive
+                ? const Color(0xFFFEF2F2)
+                : cimaSurface,
             border: active ? null : Border.all(color: cimaBorder),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: active ? Colors.white : cimaMuted),
+          child: Icon(
+            icon,
+            color: active
+                ? Colors.white
+                : destructive
+                ? const Color(0xFF991B1B)
+                : cimaMuted,
+          ),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: destructive ? const Color(0xFF991B1B) : null,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
       ),

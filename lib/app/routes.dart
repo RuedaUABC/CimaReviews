@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cimareviews/ui/views/dashboard_view.dart';
+import 'package:cimareviews/ui/views/event_details_view.dart';
 import 'package:cimareviews/ui/views/events_view.dart';
 import 'package:cimareviews/ui/views/splash_view.dart';
 import 'package:cimareviews/ui/views/home_view.dart';

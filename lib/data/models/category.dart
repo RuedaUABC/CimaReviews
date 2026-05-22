@@ -48,3 +48,15 @@ enum Category {
     }
   }
 }
+
+Category categoryFromApiName(String value) {
+  final normalized = value.trim().toLowerCase();
+  return Category.values.firstWhere(
+    (category) => category.name == normalized,
+    orElse: () => Category.cafeteria,
+  );
+}
+
+String categoryToApiName(Category category) {
+  return category.name.toUpperCase();
+}

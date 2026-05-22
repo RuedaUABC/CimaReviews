@@ -1,38 +1,63 @@
 # UML
 
+Diagrama actualizado para reflejar la arquitectura implementada actualmente en
+CimaReviews: autenticacion con sesion persistente, consumo de API, Home con
+busqueda/filtros, eventos, detalle de negocio, detalle de evento y permisos
+basicos en el menu del negocio.
+
 ```mermaid
 classDiagram
     direction TB
-    
+
     %% ============================
-    %% ENUMERATIONS
+    %% ENUMERACIONES
     %% ============================
     class Role {
-        <<enumeration>>
-        ADMIN
-        MODERATOR
-        SELLER
-        CUSTOMER
+        <<abstract>>
+        +List~Permission~ permissions
+        +hasPermission(Permission p) bool
     }
-    
+
+    class Admin {
+    }
+
+    class Moderator {
+    }
+
+    class Seller {
+    }
+
+    class UserRole {
+    }
+
+    class Permission {
+        <<enumeration>>
+        deleteAnyReview
+        createBusiness
+        editAnyBusiness
+        deleteAnyBusiness
+        banUser
+        viewAnalytics
+    }
+
     class Category {
         <<enumeration>>
-        VEGANO
-        CAFETERIA
-        ASIATICA
-        RAMEN
-        MEXICANA
-        DESAYUNOS
-        PANADERIA
-        SUSHI
-        PIZZA
-        HAMBURGUESAS
-        TACOS
-        ITALIANA
-        ENSALADAS
-        POSTRES
+        vegano
+        cafeteria
+        asiatica
+        ramen
+        mexicana
+        desayunos
+        panaderia
+        sushi
+        pizza
+        hamburguesas
+        tacos
+        italiana
+        ensaladas
+        postres
     }
-    
+
     class ReportStatus {
         <<enumeration>>
         PENDING
@@ -40,416 +65,187 @@ classDiagram
         RESOLVED
         REJECTED
     }
-    
+
     %% ============================
-    %% CORE MODELS (Entidades)
+    %% MODELOS
     %% ============================
-    class Location {
-        +double lat
-        +double lng
-    }
-    
     class User {
         +String id
         +String name
         +String email
+        +Role role
         +List~Role~ roles
-        +DateTime created_at
+        +DateTime? createdAt
+        +User.fromJson(Map json)
+        +toJson() Map
     }
-    
+
     class Session {
         +String token
         +User user
-        +DateTime expires_at
+        +DateTime expiresAt
+        +Session.fromJson(Map json)
+        +isValid() bool
+        +toJson() Map
     }
-    
+
     class Business {
         +String id
         +String name
-        +String owner_id
-        +Location location
-        +double avg_rating
-        +List~Category~ categories
-        +String? description
-        +double? distance_km
+        +User owner
+        +LatLng location
+        +double avgRating
         +List~Product~ products
         +List~Review~ reviews
+        +List~Category~ categories
+        +String? description
+        +String? imageUrl
+        +Business.fromJson(Map json)
     }
-    
+
     class Product {
         +String name
         +double price
         +String? description
+        +Product.fromJson(Map json)
     }
-    
+
     class Review {
         +String id
-        +String business_id
-        +String user_id
+        +String? businessId
+        +String? userId
         +double rating
         +String comment
-        +List~String~? images
-        +DateTime created_at
-        +User? user
+        +User author
+        +List~String~ images
+        +DateTime? createdAt
+        +Review.fromJson(Map json)
     }
-    
-    class Report {
-        +String id
-        +String reason
-        +String reporter_id
-        +String reported_user_id
-        +String? business_id
-        +String? review_id
-        +ReportStatus status
-        +DateTime created_at
-    }
-    
+
     class Event {
         +String id
         +String title
         +String description
         +DateTime date
-        +List~String~ business_ids
-        +String image_url
+        +List~String~ businessIds
+        +String imageUrl
+        +List~Business~ participants
+        +Event.fromJson(Map json)
     }
-    
+
+    class Report {
+        +String id
+        +String reason
+        +String reporterId
+        +String reportedUserId
+        +String? businessId
+        +String? reviewId
+        +ReportStatus status
+        +DateTime createdAt
+    }
+
     %% ============================
-    %% BASE SERVICE
+    %% SERVICIOS DE INFRAESTRUCTURA
     %% ============================
+    class ApiTransport {
+        <<platform adapter>>
+        +sendJsonRequest(Uri uri, String method, Map headers, Object? body) Future_ApiTransportResponse
+    }
+
+    class ApiTransportResponse {
+        +int statusCode
+        +String body
+    }
+
+    class ApiException {
+        +String message
+        +int? statusCode
+        +Object? details
+    }
+
     class ApiService {
-        -http.Client _client
         -String _baseUrl
         -String? _token
         +setToken(String token) void
-        -Map _buildHeaders()
-        -dynamic _handleResponse(Response response)
-        #Future~T~ get~T~(String endpoint, Map params)
-        #Future~T~ post~T~(String endpoint, dynamic body)
-        #Future~T~ put~T~(String endpoint, dynamic body)
-        #Future~T~ patch~T~(String endpoint, dynamic body)
-        #Future~void~ delete(String endpoint)
+        +clearToken() void
+        +get(String endpoint, Map? queryParameters) Future~dynamic~
+        +post(String endpoint, Object? body) Future~dynamic~
+        +put(String endpoint, Object? body) Future~dynamic~
+        +patch(String endpoint, Object? body) Future~dynamic~
+        +delete(String endpoint) Future~void~
+        -_buildHeaders() Map
+        -_handleResponse(ApiTransportResponse response) dynamic
     }
-    
+
+    class LocalStorageService {
+        <<singleton>>
+        -SharedPreferences? _prefs
+        -Session? _session
+        -User? _user
+        -String? _token
+        +init() Future~void~
+        +setToken(String token) Future~void~
+        +getToken() String?
+        +setUser(User user) Future~void~
+        +getUser() User?
+        +setSession(Session session) Future~void~
+        +getSession() Session?
+        +clear() Future~void~
+        +clearAuthData() Future~void~
+        -_loadSession() Future~void~
+    }
+
     %% ============================
-    %% AUTH SERVICE (Métodos agrupados)
+    %% SERVICIOS DE DOMINIO/API
     %% ============================
     class AuthService {
         -ApiService _api
-        -CacheService _cache
-        
-        %% Autenticación
-        +Future~Session~ login(String email, String password)
-        +Future~User~ register(String name, String email, String password)
-        +Future~void~ logout()
-        +Future~Session~ refreshToken(String refreshToken)
-        
-        %% Gestión de contraseña
-        +Future~void~ changePassword(String oldPassword, String newPassword)
-        +Future~void~ forgotPassword(String email)
-        
-        %% Estado de sesión
-        +bool isAuthenticated()
-        +Session? getCurrentSession()
-        
-        -Future~void~ _saveSession(Session session)
+        -LocalStorageService _storage
+        +login(String email, String password) Future~Session~
+        +register(String name, String email, String password) Future~User~
+        +logout() Future~void~
+        +refreshToken(String refreshToken) Future~Session~
+        +changePassword(String oldPassword, String newPassword) Future~void~
+        +forgotPassword(String email) Future~void~
+        +isAuthenticated() bool
+        +getCurrentSession() Session?
+        -_saveSession(Session session) Future~void~
     }
-    
-    %% ============================
-    %% USER SERVICE (Métodos agrupados)
-    %% ============================
-    class UserService {
-        -ApiService _api
-        -CacheService _cache
-        -DatabaseService _db
-        
-        %% Perfil personal
-        +Future~User~ getMyProfile()
-        +Future~User~ updateMyProfile(String? name, String? email, List~Role~? roles)
-        
-        %% Perfiles de otros usuarios
-        +Future~User~ getUserProfile(String userId)
-        +Future~List~User~~ listUsers(int skip, int limit)
-        
-        %% Reseñas de usuario
-        +Future~List~Review~~ getUserReviews(String userId)
-        
-        %% Utilidades
-        +User? getCachedUser()
-        +bool isLoggedIn()
-        -Future~void~ _cacheUser(User user)
-    }
-    
-    %% ============================
-    %% BUSINESS SERVICE (Métodos agrupados)
-    %% ============================
+
     class BusinessService {
         -ApiService _api
-        -DatabaseService _db
-        -CacheService _cache
-        -LocationService _location
-        
-        %% CRUD de negocios
-        +Future~List~Business~~ getBusinesses(int skip, int limit)
-        +Future~Business~ getBusiness(String id)
-        +Future~Business~ createBusiness(
-            String name, 
-            String ownerId, 
-            Location location, 
-            List~Category~ categories, 
-            String? description, 
-            List~Product~? products
-        )
-        +Future~Business~ updateBusiness(
-            String id, 
-            String? name, 
-            Location? location, 
-            List~Category~? categories, 
-            String? description, 
-            List~Product~? products
-        )
-        +Future~void~ deleteBusiness(String id)
-        
-        %% Búsqueda y filtrado
-        +Future~List~Business~~ searchBusinesses(String query)
-        +Future~List~Business~~ getNearbyBusinesses(double lat, double lng, double radius)
-        +Future~List~Business~~ getBusinessesByCategory(Category category)
-        
-        %% Sincronización
-        -Future~void~ _syncWithServer()
-        -Future~void~ _refreshInBackground()
+        +getBusinesses(int skip, int limit) Future_List_Business
+        +searchBusinesses(String query) Future_List_Business
+        +getBusiness(String id) Future~Business~
+        -_parseBusinessList(dynamic data) List~Business~
     }
-    
-    %% ============================
-    %% REVIEW SERVICE (Métodos agrupados)
-    %% ============================
-    class ReviewService {
-        -ApiService _api
-        -DatabaseService _db
-        
-        %% CRUD de reseñas
-        +Future~List~Review~~ getReviews(int skip, int limit)
-        +Future~Review~ getReview(String id)
-        +Future~Review~ createReview(
-            String businessId, 
-            double rating, 
-            String comment, 
-            List~String~? images
-        )
-        +Future~Review~ updateReview(
-            String id, 
-            double? rating, 
-            String? comment, 
-            List~String~? images
-        )
-        +Future~void~ deleteReview(String id)
-        
-        %% Reseñas por negocio
-        +Future~List~Review~~ getReviewsByBusiness(String businessId, int skip, int limit)
-        
-        %% Estadísticas
-        +Future~double~ getAverageRating(String businessId)
-        +Future~Map~ getRatingDistribution(String businessId)
-    }
-    
-    %% ============================
-    %% REPORT SERVICE (Métodos agrupados)
-    %% ============================
-    class ReportService {
-        -ApiService _api
-        
-        %% CRUD de reportes
-        +Future~List~Report~~ getReports(int skip, int limit)
-        +Future~Report~ getReport(String id)
-        +Future~Report~ createReport(
-            String reason, 
-            String reporterId, 
-            String reportedUserId, 
-            String? businessId, 
-            String? reviewId
-        )
-        +Future~Report~ updateReport(String id, String? reason, ReportStatus? status)
-        
-        %% Filtrado de reportes
-        +Future~List~Report~~ getReportsByUser(String userId)
-        +Future~List~Report~~ getPendingReports()
-        +Future~List~Report~~ getResolvedReports()
-    }
-    
-    %% ============================
-    %% EVENT SERVICE (Métodos agrupados)
-    %% ============================
+
     class EventService {
         -ApiService _api
-        -DatabaseService _db
-        
-        %% CRUD de eventos
-        +Future~List~Event~~ getEvents(int skip, int limit)
-        +Future~Event~ getEvent(String id)
-        +Future~Event~ createEvent(
-            String title, 
-            String description, 
-            DateTime date, 
-            List~String~ businessIds, 
-            String imageUrl
-        )
-        +Future~Event~ updateEvent(
-            String id, 
-            String? title, 
-            String? description, 
-            DateTime? date, 
-            List~String~? businessIds, 
-            String? imageUrl
-        )
-        +Future~void~ deleteEvent(String id)
-        
-        %% Filtrado de eventos
-        +Future~List~Event~~ getUpcomingEvents()
-        +Future~List~Event~~ getEventsByBusiness(String businessId)
-        +Future~List~Event~~ getEventsByDateRange(DateTime start, DateTime end)
+        +getEvents(int skip, int limit) Future_List_Event
     }
-    
-    %% ============================
-    %% DATABASE SERVICE
-    %% ============================
-    class DatabaseService {
-        -Database _db
-        
-        %% Negocios
-        +Future~List~Business~~ getCachedBusinesses()
-        +Future~Business?~ getCachedBusiness(String id)
-        +Future~void~ cacheBusinesses(List~Business~ businesses)
-        +Future~void~ cacheBusiness(Business business)
-        +Future~void~ deleteCachedBusiness(String id)
-        
-        %% Reseñas
-        +Future~List~Review~~ getCachedReviewsByBusiness(String businessId)
-        +Future~void~ cacheReview(Review review)
-        +Future~void~ deleteCachedReview(String id)
-        
-        %% Usuarios
-        +Future~User?~ getCachedUser(String id)
-        +Future~void~ cacheUser(User user)
-        
-        %% Eventos
-        +Future~List~Event~~ getCachedEvents()
-        +Future~void~ cacheEvent(Event event)
-        +Future~void~ deleteCachedEvent(String id)
-        
-        %% Limpieza
-        +Future~void~ clearAll()
-        +Future~void~ clearExpiredCache()
-        
-        -Future~void~ _initDatabase()
-        -Future~void~ _onCreate(Database db, int version)
-    }
-    
-    %% ============================
-    %% CACHE SERVICE
-    %% ============================
-    class CacheService {
-        -SharedPreferences _prefs
-        
-        %% Tokens
-        +Future~void~ setToken(String token)
-        +String? getToken()
-        +Future~void~ setRefreshToken(String token)
-        +String? getRefreshToken()
-        
-        %% Usuario y sesión
-        +Future~void~ setUser(User user)
-        +User? getUser()
-        +Future~void~ setSession(Session session)
-        +Session? getSession()
-        
-        %% Preferencias
-        +Future~void~ setLastSync(DateTime date)
-        +DateTime? getLastSync()
-        +Future~void~ setPreferences(String key, dynamic value)
-        +dynamic getPreferences(String key)
-        
-        %% Limpieza
-        +Future~void~ clear()
-        +Future~void~ clearAuthData()
-        
-        -Future~void~ _init()
-    }
-    
-    %% ============================
-    %% LOCATION SERVICE
-    %% ============================
-    class LocationService {
-        -GeolocatorPlatform _geolocator
-        
-        %% Posición actual
-        +Future~Position~ getCurrentPosition()
-        +Future~String~ getCurrentAddress()
-        
-        %% Búsqueda y geocodificación
-        +Future~List~Address~~ searchAddress(String query)
-        +Future~String~ getAddressFromCoordinates(double lat, double lon)
-        
-        %% Cálculos
-        +double calculateDistance(double lat1, double lon1, double lat2, double lon2)
-        +double calculateRadius(double lat, double lon, double radiusKm)
-        
-        %% Permisos
-        +Future~bool~ checkPermissions()
-        +Future~bool~ requestPermissions()
-    }
-    
-    %% ============================
-    %% VIEWMODELS (Simplificados)
-    %% ============================
-    class DashboardViewModel {
-        -BusinessService _businessService
-        -UserService _userService
+
+    %% Repositorios legacy usados como fallback/demo en pantallas secundarias.
+    class BusinessRepository {
+        <<legacy singleton>>
         +List~Business~ businesses
-        +bool isLoading
-        +String? error
-        +User? currentUser
-        +loadBusinesses() Future~void~
-        +refresh() Future~void~
-        +loadUserData() Future~void~
-        +searchBusinesses(String query) Future~void~
-        +dispose() void
+        +getBusinesses() List~Business~
+        +getBusiness(String id) Business
+        +createBusiness(Business b) void
+        +deleteBusiness(String id) void
     }
-    
-    class BusinessDetailsViewModel {
-        -BusinessService _businessService
-        -ReviewService _reviewService
-        -UserService _userService
-        -ReportService _reportService
-        +Business? business
-        +List~Review~ reviews
-        +double averageRating
-        +bool isLoading
-        +bool isOwner
-        +String? error
-        +loadDetails(String businessId) Future~void~
-        +submitReview(double rating, String comment, List~String~? images) Future~bool~
-        +deleteReview(String reviewId) Future~void~
-        +reportReview(String reviewId, String reason) Future~void~
-        +checkIfOwner() Future~bool~
-        +dispose() void
+
+    class EventRepository {
+        <<legacy>>
+        +List~Event~ events
+        +getEvents() List~Event~
     }
-    
-    class MapViewModel {
-        -BusinessService _businessService
-        -LocationService _locationService
-        +List~Business~ nearbyBusinesses
-        +Location? currentLocation
-        +bool isLoading
-        +double? currentZoom
-        +loadNearbyBusinesses(double radius) Future~void~
-        +getCurrentLocation() Future~void~
-        +searchLocation(String query) Future~Location?~
-        +centerOnBusiness(Business business) Future~void~
-        +dispose() void
-    }
-    
+
+    %% ============================
+    %% VIEWMODELS
+    %% ============================
     class LoginViewModel {
         -AuthService _authService
-        -UserService _userService
         +String email
         +String password
         +bool isLoading
@@ -459,50 +255,46 @@ classDiagram
         +loginWithBiometrics() Future~bool~
         +validateForm() bool
         +clearError() void
-        +dispose() void
     }
-    
-    class RegisterViewModel {
+
+    class RegisterUserViewModel {
         -AuthService _authService
         +String name
         +String email
         +String password
         +String confirmPassword
+        +bool seller
         +bool isLoading
         +List~String~ errors
         +register() Future~bool~
         +validateForm() List~String~
-        +dispose() void
     }
-    
-    class UserProfileViewModel {
-        -UserService _userService
-        -ReviewService _reviewService
-        +User? user
-        +List~Review~ userReviews
+
+    class HomeViewModel {
+        -BusinessService _businessService
+        -List~Business~ _allBusinesses
+        -List~Business~ _searchResults
         +bool isLoading
-        +bool isEditing
-        +loadUserProfile(String userId) Future~void~
-        +updateProfile(String? name, String? email, List~Role~? roles) Future~bool~
-        +changePassword(String oldPass, String newPass) Future~bool~
-        +loadUserReviews() Future~void~
-        +toggleEditMode() void
-        +dispose() void
+        +bool isSearching
+        +String? error
+        +String searchQuery
+        +Category? selectedCategory
+        +businesses List~Business~
+        +categories List~Category~
+        +loadBusinesses() Future~void~
+        +selectCategory(Category? category) void
+        +updateSearchQuery(String value) void
+        +clearSearch() void
     }
-    
-    class WriteReviewViewModel {
-        -ReviewService _reviewService
-        +String businessId
-        +double rating
-        +String comment
-        +List~String~ images
+
+    class BusinessDetailsViewModel {
+        -BusinessService _businessService
+        +Business business
         +bool isLoading
-        +submitReview() Future~bool~
-        +validateForm() bool
-        +clearForm() void
-        +dispose() void
+        +String? error
+        +loadDetails() Future~void~
     }
-    
+
     class EventsViewModel {
         -EventService _eventService
         +List~Event~ events
@@ -510,300 +302,226 @@ classDiagram
         +String? error
         +loadEvents() Future~void~
         +refresh() Future~void~
-        +getEventsByDate(DateTime date) List~Event~
-        +dispose() void
     }
-    
-    class RegisterBusinessViewModel {
-        -BusinessService _businessService
-        -LocationService _locationService
-        +String name
-        +String description
-        +Location? location
-        +List~Category~ selectedCategories
-        +List~Product~ products
-        +bool isLoading
-        +registerBusiness() Future~bool~
-        +searchLocation(String query) Future~void~
-        +addProduct(String name, double price, String? description)
-        +removeProduct(int index)
-        +validateForm() bool
-        +dispose() void
-    }
-    
-    %% ============================
-    %% VIEWS (UI)
-    %% ============================
-    class DashboardView {
-        +Widget build()
-        -Widget _buildBusinessList()
-        -Widget _buildAppBar()
-        -void _onBusinessTap(Business business)
-        -Future~void~ _onRefresh()
-    }
-    
-    class BusinessDetailsView {
-        +String businessId
-        +Widget build()
-        -Widget _buildHeader()
-        -Widget _buildRatingSection()
-        -Widget _buildReviewsList()
-        -Widget _buildWriteReviewButton()
-        -void _onWriteReview()
-    }
-    
-    class MapView {
-        +Widget build()
-        -void _onMapCreated(MapController controller)
-        -void _addMarkers()
-        -void _onMarkerTap(Business business)
-        -void _onMyLocationTap()
-        -void _showBusinessBottomSheet(Business business)
-    }
-    
-    class LoginView {
-        +Widget build()
-        -Widget _buildEmailField()
-        -Widget _buildPasswordField()
-        -Widget _buildLoginButton()
-        -void _onLoginPressed()
-        -void _onRegisterPressed()
-        -void _showError(String message)
-    }
-    
-    class RegisterView {
-        +Widget build()
-        -Widget _buildNameField()
-        -Widget _buildEmailField()
-        -Widget _buildPasswordFields()
-        -void _onRegisterPressed()
-        -void _showErrors(List~String~ errors)
-    }
-    
-    class UserProfileView {
-        +String userId
-        +Widget build()
-        -Widget _buildProfileHeader()
-        -Widget _buildUserReviews()
-        -Widget _buildEditButton()
-        -void _onEditProfile()
-        -void _onChangePassword()
-    }
-    
-    class WriteReviewView {
-        +String businessId
-        +Widget build()
-        -Widget _buildRatingBar()
-        -Widget _buildCommentField()
-        -Widget _buildImagePicker()
-        -void _onSubmit()
-    }
-    
-    class EventsView {
-        +Widget build()
-        -Widget _buildEventList()
-        -Widget _buildEventCard(Event event)
-        -void _onEventTap(Event event)
-    }
-    
-    class RegisterBusinessView {
-        +Widget build()
-        -Widget _buildBusinessForm()
-        -Widget _buildCategorySelector()
-        -Widget _buildLocationPicker()
-        -Widget _buildProductsList()
-        -void _onSubmit()
-        -void _onLocationSelected(Location location)
-        -void _onAddProduct()
-    }
-    
-    %% ============================
-    %% REUSABLE WIDGETS
-    %% ============================
-    class RatingStars {
-        +double rating
-        +double size
-        +bool interactive
-        +Function(double) onRatingUpdate
-        +Widget build()
-    }
-    
-    class BusinessCard {
-        +Business business
-        +VoidCallback onTap
-        +Widget build()
-    }
-    
-    class LoadingIndicator {
-        +String? message
-        +Widget build()
-    }
-    
-    class CustomAppBar {
-        +String title
-        +List~Widget~ actions
-        +bool showBackButton
-        +Widget build()
-    }
-    
-    class ErrorWidget {
-        +String message
-        +VoidCallback onRetry
-        +Widget build()
-    }
-    
-    class CustomBottomNavBar {
-        +int currentIndex
-        +Function(int) onTap
-        +Widget build()
-    }
-    
-    class ProductCard {
-        +Product product
-        +bool showRemoveButton
-        +VoidCallback? onRemove
-        +Widget build()
-    }
-    
-    %% ============================
-    %% RELATIONSHIPS - MODELOS
-    %% ============================
-    User "1" *-- "many" Role : tiene
-    User "1" --> "1" Session : posee
-    User "1" --> "many" Business : es dueño de
-    User "1" --> "many" Review : escribe
-    User "1" --> "many" Report : realiza
-    User "1" --> "many" Report : es reportado en
-    
-    Business "1" *-- "many" Category : categorizado por
-    Business "1" --> "1" User : pertenece a
-    Business "1" --> "many" Review : recibe
-    Business "1" --> "many" Report : es referenciado en
-    Business "1" *-- "many" Product : tiene
 
-    
-    Review "1" --> "1" User : escrito por
-    Review "1" --> "1" Business : pertenece a
-    Review "1" --> "many" Report : es referenciado en
-    
-    Report "1" --> "1" User : reportado por
-    Report "1" --> "1" User : reporta a
-    Report "1" --> "1" Business : referencia a
-    Report "1" --> "1" Review : referencia a
-    
-    Event "1" *-- "many" Business : incluye
-    
-    Product "many" --> "1" Business : pertenece a
-    
+    class UserProfileViewModel {
+        -AuthService _authService
+        +User? user
+        +bool isLoading
+        +String? error
+        +loadCurrentUser() void
+        +displayName String
+        +displayRole String
+    }
+
     %% ============================
-    %% RELATIONSHIPS - SERVICES
+    %% VISTAS
     %% ============================
-    AuthService --> ApiService : usa
-    AuthService --> CacheService : usa
-    
-    UserService --> ApiService : usa
-    UserService --> CacheService : usa
-    UserService --> DatabaseService : usa
-    
-    BusinessService --> ApiService : usa
-    BusinessService --> DatabaseService : usa
-    BusinessService --> CacheService : usa
-    BusinessService --> LocationService : usa
-    
-    ReviewService --> ApiService : usa
-    ReviewService --> DatabaseService : usa
-    
-    ReportService --> ApiService : usa
-    
-    EventService --> ApiService : usa
-    EventService --> DatabaseService : usa
-    
-    ApiService <|-- AuthService : extiende
-    ApiService <|-- UserService : extiende
-    ApiService <|-- BusinessService : extiende
-    ApiService <|-- ReviewService : extiende
-    ApiService <|-- ReportService : extiende
-    ApiService <|-- EventService : extiende
-    
+    class App {
+        +String? initialRoute
+        +build(BuildContext context) Widget
+    }
+
+    class LoginView {
+        -LoginViewModel _viewModel
+        -TextEditingController _emailController
+        -TextEditingController _passwordController
+        -_submit() Future~void~
+    }
+
+    class RegisterUserView {
+        -RegisterUserViewModel _viewModel
+        -TextEditingController _nameController
+        -TextEditingController _emailController
+        -TextEditingController _passwordController
+        -TextEditingController _confirmPasswordController
+        -_submit() Future~void~
+    }
+
+    class HomeView {
+        -HomeViewModel _viewModel
+        -TextEditingController _searchController
+        -_buildBody(BuildContext context, List~Business~ businesses) Widget
+    }
+
+    class BusinessDetailsView {
+        +Business business
+        -BusinessDetailsViewModel _viewModel
+    }
+
+    class EventsView {
+        -EventsViewModel _viewModel
+        -_buildBody() Widget
+    }
+
+    class EventDetailsView {
+        +Event? event
+        -BusinessService _businessService
+        -List~Business~ _businesses
+        -bool _isLoading
+        -String? _error
+        -_loadBusinesses() Future~void~
+    }
+
+    class UserProfileView {
+        -UserProfileViewModel _viewModel
+        -AuthService _authService
+        -bool _isLoggingOut
+        -_logout() Future~void~
+    }
+
+    class BusinessMenuView {
+        +Business? routeArgument
+        +build(BuildContext context) Widget
+        -isOwner bool
+    }
+
+    class CimaNavigationScaffold {
+        +int currentIndex
+        +Widget child
+        +Widget? floatingActionButton
+    }
+
     %% ============================
-    %% RELATIONSHIPS - SERVICES TO VIEWMODELS
+    %% RELACIONES DE MODELOS
     %% ============================
-    DashboardViewModel --> BusinessService : usa
-    DashboardViewModel --> UserService : usa
-    
-    BusinessDetailsViewModel --> BusinessService : usa
-    BusinessDetailsViewModel --> ReviewService : usa
-    BusinessDetailsViewModel --> UserService : usa
-    BusinessDetailsViewModel --> ReportService : usa
-    
-    MapViewModel --> BusinessService : usa
-    MapViewModel --> LocationService : usa
-    
-    LoginViewModel --> AuthService : usa
-    LoginViewModel --> UserService : usa
-    
-    RegisterViewModel --> AuthService : usa
-    
-    UserProfileViewModel --> UserService : usa
-    UserProfileViewModel --> ReviewService : usa
-    
-    WriteReviewViewModel --> ReviewService : usa
-    
-    EventsViewModel --> EventService : usa
-    
-    RegisterBusinessViewModel --> BusinessService : usa
-    RegisterBusinessViewModel --> LocationService : usa
-    
+    Role <|-- Admin
+    Role <|-- Moderator
+    Role <|-- Seller
+    Role <|-- UserRole
+
+    User "1" *-- "many" Role : roles
+    Session "1" --> "1" User : user
+    Business "1" --> "1" User : owner
+    Business "1" *-- "many" Product : products
+    Business "1" *-- "many" Review : reviews
+    Business "1" *-- "many" Category : categories
+    Review "1" --> "1" User : author
+    Event "1" --> "many" Business : participants preview
+    Event "1" --> "many" Business : businessIds
+
     %% ============================
-    %% RELATIONSHIPS - VIEW TO VIEWMODEL
+    %% RELACIONES DE SERVICIOS
     %% ============================
-    DashboardView --> DashboardViewModel : watches
-    BusinessDetailsView --> BusinessDetailsViewModel : watches
-    MapView --> MapViewModel : watches
-    LoginView --> LoginViewModel : watches
-    RegisterView --> RegisterViewModel : watches
-    UserProfileView --> UserProfileViewModel : watches
-    WriteReviewView --> WriteReviewViewModel : watches
-    EventsView --> EventsViewModel : watches
-    RegisterBusinessView --> RegisterBusinessViewModel : watches
-    
+    ApiService --> ApiTransport : sends requests
+    ApiService --> ApiTransportResponse : handles
+    ApiService ..> ApiException : throws
+
+    LocalStorageService --> Session : persists
+    LocalStorageService --> User : persists
+
+    AuthService --> ApiService : uses
+    AuthService --> LocalStorageService : persists session
+    AuthService --> Session : creates/reads
+
+    BusinessService --> ApiService : uses
+    BusinessService --> Business : maps JSON
+
+    EventService --> ApiService : uses
+    EventService --> Event : maps JSON
+
+    BusinessRepository --> Business : legacy data
+    EventRepository --> Event : legacy data
+
     %% ============================
-    %% RELATIONSHIPS - VIEW TO WIDGETS
+    %% RELACIONES VIEWMODEL -> SERVICIO
     %% ============================
-    DashboardView ..> BusinessCard : usa
-    DashboardView ..> LoadingIndicator : usa
-    DashboardView ..> ErrorWidget : usa
-    DashboardView ..> CustomAppBar : usa
-    DashboardView ..> CustomBottomNavBar : usa
-    
-    BusinessDetailsView ..> RatingStars : usa
-    BusinessDetailsView ..> LoadingIndicator : usa
-    BusinessDetailsView ..> ErrorWidget : usa
-    BusinessDetailsView ..> CustomAppBar : usa
-    
-    MapView ..> LoadingIndicator : usa
-    MapView ..> ErrorWidget : usa
-    MapView ..> CustomAppBar : usa
-    
-    LoginView ..> LoadingIndicator : usa
-    LoginView ..> ErrorWidget : usa
-    
-    RegisterView ..> LoadingIndicator : usa
-    RegisterView ..> ErrorWidget : usa
-    
-    UserProfileView ..> LoadingIndicator : usa
-    UserProfileView ..> ErrorWidget : usa
-    UserProfileView ..> CustomAppBar : usa
-    
-    WriteReviewView ..> RatingStars : usa
-    WriteReviewView ..> LoadingIndicator : usa
-    
-    EventsView ..> LoadingIndicator : usa
-    EventsView ..> ErrorWidget : usa
-    EventsView ..> CustomAppBar : usa
-    
-    RegisterBusinessView ..> LoadingIndicator : usa
-    RegisterBusinessView ..> ErrorWidget : usa
-    RegisterBusinessView ..> CustomAppBar : usa
-    RegisterBusinessView ..> ProductCard : usa
+    LoginViewModel --> AuthService : login/register state
+    RegisterUserViewModel --> AuthService : register
+    HomeViewModel --> BusinessService : list/search/filter
+    BusinessDetailsViewModel --> BusinessService : load full detail
+    EventsViewModel --> EventService : list events
+    UserProfileViewModel --> AuthService : current session
+
+    %% ============================
+    %% RELACIONES VIEW -> VIEWMODEL/SERVICIO
+    %% ============================
+    App --> AuthService : initialRoute auth check
+    LoginView --> LoginViewModel : owns
+    RegisterUserView --> RegisterUserViewModel : owns
+    HomeView --> HomeViewModel : owns
+    BusinessDetailsView --> BusinessDetailsViewModel : owns
+    EventsView --> EventsViewModel : owns
+    EventDetailsView --> BusinessService : loads participant businesses
+    UserProfileView --> UserProfileViewModel : owns
+    UserProfileView --> AuthService : logout
+    BusinessMenuView --> AuthService : checks current user
+    BusinessMenuView --> BusinessRepository : fallback only
+
+    HomeView ..> BusinessDetailsView : opens selected business
+    EventsView ..> EventDetailsView : opens selected event
+    EventDetailsView ..> BusinessDetailsView : opens participant business
+    BusinessDetailsView ..> BusinessMenuView : opens business menu with Business argument
+    UserProfileView ..> LoginView : logout redirects
+    HomeView --> CimaNavigationScaffold : wrapped by
+    EventsView --> CimaNavigationScaffold : wrapped by
+    UserProfileView --> CimaNavigationScaffold : wrapped by
+```
+
+## Flujos principales
+
+```mermaid
+sequenceDiagram
+    participant Main
+    participant Storage as LocalStorageService
+    participant App
+    participant Auth as AuthService
+    participant Api as ApiService
+    participant UI as Home/Login
+
+    Main->>Storage: init()
+    Storage->>Storage: load Session from SharedPreferences
+    Main->>App: runApp()
+    App->>Auth: isAuthenticated()
+    Auth->>Storage: getSession()
+    alt Session valida
+        App->>UI: initialRoute /home
+    else Sin sesion o expirada
+        App->>UI: initialRoute /login
+    end
+
+    UI->>Auth: login(email, password)
+    Auth->>Api: POST /api/v1/auth/login
+    Api-->>Auth: LoginResponse(token, user, expires_at)
+    Auth->>Storage: setSession(session)
+```
+
+```mermaid
+sequenceDiagram
+    participant Home
+    participant HomeVM as HomeViewModel
+    participant BusinessSvc as BusinessService
+    participant Api as ApiService
+
+    Home->>HomeVM: loadBusinesses()
+    HomeVM->>BusinessSvc: getBusinesses(skip, limit)
+    BusinessSvc->>Api: GET /api/v1/businesses/
+    Api-->>BusinessSvc: BusinessListResponse[]
+    BusinessSvc-->>HomeVM: List<Business>
+    HomeVM-->>Home: businesses + categories
+
+    Home->>HomeVM: updateSearchQuery(q)
+    HomeVM->>BusinessSvc: searchBusinesses(q)
+    BusinessSvc->>Api: GET /api/v1/businesses/search?q=q
+    Api-->>BusinessSvc: BusinessListResponse[]
+```
+
+```mermaid
+sequenceDiagram
+    participant Details as BusinessDetailsView
+    participant VM as BusinessDetailsViewModel
+    participant BusinessSvc as BusinessService
+    participant Menu as BusinessMenuView
+    participant Auth as AuthService
+
+    Details->>VM: loadDetails()
+    VM->>BusinessSvc: getBusiness(business.id)
+    BusinessSvc-->>VM: BusinessDetailResponse
+    Details->>Menu: open with Business argument
+    Menu->>Auth: getCurrentSession()
+    alt currentUser.id == business.owner.id
+        Menu-->>Menu: show add product/category actions
+    else Cliente o no duenio
+        Menu-->>Menu: hide owner-only actions
+    end
 ```

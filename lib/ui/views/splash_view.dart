@@ -1,4 +1,7 @@
+import 'package:cimareviews/data/models/business.dart';
+import 'package:cimareviews/data/models/product.dart';
 import 'package:cimareviews/data/repositories/business_repository.dart';
+import 'package:cimareviews/data/services/auth_service.dart';
 import 'package:cimareviews/ui/views/business_details_view.dart';
 import 'package:cimareviews/ui/widgets/figma_primitives.dart';
 import 'package:flutter/material.dart';
@@ -100,27 +103,6 @@ class RegisterSuccessView extends StatelessWidget {
   }
 }
 
-class EventDetailsView extends StatelessWidget {
-  const EventDetailsView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const _SimpleScaffold(
-      title: 'Bazar FCQI',
-      body: [
-        _InfoBlock(
-          title: '25 de Abril del 2026',
-          text: 'Ven a disfrutar de todo tipo de productos.',
-        ),
-        _InfoBlock(
-          title: 'Negocios participantes',
-          text: 'Sushito, Michoacana, Mundo Otaku y Brownies Deli.',
-        ),
-      ],
-    );
-  }
-}
-
 class MyBusinessesView extends StatelessWidget {
   const MyBusinessesView({super.key});
 
@@ -191,46 +173,130 @@ class BusinessMenuView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final products = BusinessRepository.instance.getBusiness('1').products;
+    final argument = ModalRoute.of(context)?.settings.arguments;
+    final business = argument is Business
+        ? argument
+        : BusinessRepository.instance.getBusiness('1');
+    final currentUser = AuthService().getCurrentSession()?.user;
+    final isOwner = currentUser != null && currentUser.id == business.owner.id;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            const BackHeader(title: 'Menu'),
+            BackHeader(title: 'Menu de ${business.name}'),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  for (final product in products)
-                    ListTile(
-                      title: Text(product.name),
-                      trailing: Text(
-                        '\$${product.price.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: cimaGreen,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                  if (business.products.isEmpty)
+                    const _InfoBlock(
+                      title: 'Sin productos',
+                      text: 'Este negocio aun no tiene productos registrados.',
+                    )
+                  else
+                    for (final product in business.products)
+                      _MenuProductTile(product: product),
+                  if (isOwner) ...[
+                    const SizedBox(height: 16),
+                    FigmaButton(
+                      label: 'Agregar Producto',
+                      icon: Icons.add,
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/add-product'),
                     ),
-                  const SizedBox(height: 16),
-                  FigmaButton(
-                    label: 'Agregar Producto',
-                    icon: Icons.add,
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/add-product'),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/add-category'),
-                    child: const Text('Agregar Categoria'),
-                  ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/add-category'),
+                      child: const Text('Agregar Categoria'),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 16),
+                    const _OwnerOnlyNotice(),
+                  ],
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MenuProductTile extends StatelessWidget {
+  const _MenuProductTile({required this.product});
+
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final description = product.description?.trim();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cimaSurface,
+        border: Border.all(color: Colors.black),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: const TextStyle(
+                    color: cimaText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (description != null && description.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    style: const TextStyle(color: cimaMuted, fontSize: 13),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '\$${product.price.toStringAsFixed(0)}',
+            style: const TextStyle(
+              color: cimaGreen,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OwnerOnlyNotice extends StatelessWidget {
+  const _OwnerOnlyNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        border: Border.all(color: cimaGreen),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Text(
+        'Solo el dueno del negocio puede agregar productos.',
+        style: TextStyle(color: cimaGreen, fontSize: 13),
       ),
     );
   }
