@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cimareviews/ui/views/dashboard_view.dart';
 import 'package:cimareviews/ui/views/events_view.dart';
-import 'package:cimareviews/ui/views/figma_secondary_views.dart';
 import 'package:cimareviews/ui/views/home_view.dart';
 import 'package:cimareviews/ui/views/login_view.dart';
 import 'package:cimareviews/ui/views/map_view.dart';
 import 'package:cimareviews/ui/views/register_business_view.dart';
 import 'package:cimareviews/ui/views/register_report_view.dart';
 import 'package:cimareviews/ui/views/register_user_view.dart';
+import 'package:cimareviews/ui/views/splash_view.dart';
 import 'package:cimareviews/ui/views/user_profile_view.dart';
 import 'package:cimareviews/ui/views/write_review_view.dart';
 

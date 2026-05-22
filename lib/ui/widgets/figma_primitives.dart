@@ -79,12 +79,22 @@ class FigmaField extends StatelessWidget {
     required this.hint,
     this.lines = 1,
     this.obscure = false,
+    this.controller,
+    this.keyboardType,
+    this.textInputAction,
+    this.enabled = true,
+    this.onSubmitted,
   });
 
   final String label;
   final String hint;
   final int lines;
   final bool obscure;
+  final TextEditingController? controller;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final bool enabled;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +113,11 @@ class FigmaField extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           TextField(
+            controller: controller,
+            enabled: enabled,
+            keyboardType: keyboardType,
+            textInputAction: textInputAction,
+            onSubmitted: onSubmitted,
             minLines: obscure ? 1 : lines,
             maxLines: obscure ? 1 : lines,
             obscureText: obscure,
@@ -142,7 +157,7 @@ class FigmaButton extends StatelessWidget {
   });
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final IconData? icon;
   final Color backgroundColor;
   final Color foregroundColor;

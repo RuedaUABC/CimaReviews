@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cimareviews/app/app.dart';
 
 void main() {
-  testWidgets('shows login and navigates to home', (WidgetTester tester) async {
+  testWidgets('shows login validation before calling API', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const App());
 
     expect(find.text('CimaReviews'), findsOneWidget);
@@ -13,7 +15,6 @@ void main() {
     await tester.tap(find.text('Log in'));
     await tester.pumpAndSettle();
 
-    expect(find.text('D’Volada'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Ingresa correo y contrasena.'), findsOneWidget);
   });
 }

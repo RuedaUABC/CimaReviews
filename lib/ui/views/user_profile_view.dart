@@ -1,9 +1,37 @@
+import 'package:cimareviews/ui/viewmodels/user_profile_viewmodel.dart';
 import 'package:cimareviews/ui/widgets/figma_primitives.dart';
 import 'package:cimareviews/ui/widgets/navbar.dart';
 import 'package:flutter/material.dart';
 
-class UserProfileView extends StatelessWidget {
+class UserProfileView extends StatefulWidget {
   const UserProfileView({super.key});
+
+  @override
+  State<UserProfileView> createState() => _UserProfileViewState();
+}
+
+class _UserProfileViewState extends State<UserProfileView> {
+  final _viewModel = UserProfileViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel.addListener(_onViewModelChanged);
+    _viewModel.loadCurrentUser();
+  }
+
+  @override
+  void dispose() {
+    _viewModel.removeListener(_onViewModelChanged);
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  void _onViewModelChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,61 +45,10 @@ class UserProfileView extends StatelessWidget {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  Container(
-                    height: 235.5,
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: Color(0xFFF3F4F6)),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 96,
-                          height: 96,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF8D8D8D),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: cimaBorder, width: 2),
-                          ),
-                          child: const Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 52,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Yamir Moreno L.',
-                          style: TextStyle(
-                            color: cimaText,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDF4),
-                            border: Border.all(color: cimaGreen),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            'Vendedor',
-                            style: TextStyle(
-                              color: cimaGreen,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  _ProfileHeader(
+                    name: _viewModel.displayName,
+                    role: _viewModel.displayRole,
+                    error: _viewModel.error,
                   ),
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -117,6 +94,77 @@ class UserProfileView extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({
+    required this.name,
+    required this.role,
+    required this.error,
+  });
+
+  final String name;
+  final String role;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 235.5,
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              color: const Color(0xFF8D8D8D),
+              shape: BoxShape.circle,
+              border: Border.all(color: cimaBorder, width: 2),
+            ),
+            child: const Icon(Icons.person, color: Colors.white, size: 52),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: cimaText,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              border: Border.all(color: cimaGreen),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              role,
+              style: const TextStyle(
+                color: cimaGreen,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (error != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              error!,
+              style: const TextStyle(color: cimaMuted, fontSize: 13),
+            ),
+          ],
+        ],
       ),
     );
   }
