@@ -3,8 +3,8 @@ import 'package:cimareviews/data/models/category.dart';
 import 'package:cimareviews/data/models/event.dart';
 import 'package:cimareviews/data/models/role.dart';
 import 'package:cimareviews/data/models/user.dart';
-import 'package:cimareviews/data/services/business_service.dart';
-import 'package:cimareviews/data/services/event_service.dart';
+import 'package:cimareviews/data/repositories/business_repository.dart';
+import 'package:cimareviews/data/repositories/event_repository.dart';
 import 'package:cimareviews/ui/viewmodels/business_details_viewmodel.dart';
 import 'package:cimareviews/ui/viewmodels/events_viewmodel.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,7 +12,7 @@ import 'package:latlong2/latlong.dart';
 
 void main() {
   group('EventsViewModel', () {
-    test('loads events from EventService', () async {
+    test('loads events from EventRepository', () async {
       final event = Event(
         id: 'evt_1',
         title: 'Noche de Tacos',
@@ -20,7 +20,7 @@ void main() {
         businessIds: ['biz_1'],
       );
       final viewModel = EventsViewModel(
-        eventService: _FakeEventService(events: [event]),
+        eventRepository: _FakeEventRepository(items: [event]),
       );
 
       await viewModel.loadEvents();
@@ -36,7 +36,7 @@ void main() {
       final detail = _business('biz_1', 'Detalle completo', [Category.tacos]);
       final viewModel = BusinessDetailsViewModel(
         initialBusiness: summary,
-        businessService: _FakeBusinessService(detail: detail),
+        businessRepository: _FakeBusinessRepository(detail: detail),
       );
 
       await viewModel.loadDetails();
@@ -48,24 +48,24 @@ void main() {
   });
 }
 
-class _FakeEventService extends EventService {
-  _FakeEventService({required this.events});
+class _FakeEventRepository extends EventRepository {
+  _FakeEventRepository({required this.items});
 
-  final List<Event> events;
+  final List<Event> items;
 
   @override
-  Future<List<Event>> getEvents({int skip = 0, int limit = 20}) async {
-    return events;
+  Future<List<Event>> fetchEvents({int skip = 0, int limit = 20}) async {
+    return items;
   }
 }
 
-class _FakeBusinessService extends BusinessService {
-  _FakeBusinessService({required this.detail});
+class _FakeBusinessRepository extends BusinessRepository {
+  _FakeBusinessRepository({required this.detail});
 
   final Business detail;
 
   @override
-  Future<Business> getBusiness(String id) async {
+  Future<Business> fetchBusiness(String id) async {
     return detail;
   }
 }

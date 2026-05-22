@@ -1,4 +1,3 @@
-import 'package:cimareviews/data/services/auth_service.dart';
 import 'package:cimareviews/ui/viewmodels/user_profile_viewmodel.dart';
 import 'package:cimareviews/ui/widgets/figma_primitives.dart';
 import 'package:cimareviews/ui/widgets/navbar.dart';
@@ -13,7 +12,6 @@ class UserProfileView extends StatefulWidget {
 
 class _UserProfileViewState extends State<UserProfileView> {
   final _viewModel = UserProfileViewModel();
-  final _authService = AuthService();
   bool _isLoggingOut = false;
 
   @override
@@ -39,7 +37,7 @@ class _UserProfileViewState extends State<UserProfileView> {
   Future<void> _logout() async {
     setState(() => _isLoggingOut = true);
 
-    await _authService.logout();
+    await _viewModel.logout();
 
     if (!mounted) {
       return;

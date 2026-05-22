@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 
+import '../../data/repositories/user_repository.dart';
 import '../../data/services/api_service.dart';
-import '../../data/services/auth_service.dart';
 
 class RegisterUserViewModel extends ChangeNotifier {
-  RegisterUserViewModel({AuthService? authService})
-    : _authService = authService ?? AuthService();
+  RegisterUserViewModel({UserRepository? userRepository})
+    : _userRepository = userRepository ?? UserRepository();
 
-  final AuthService _authService;
+  final UserRepository _userRepository;
 
   String name = '';
   String email = '';
@@ -27,7 +27,7 @@ class RegisterUserViewModel extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      await _authService.register(name, email, password);
+      await _userRepository.register(name, email, password);
       errors = [];
       return true;
     } on ApiException catch (error) {

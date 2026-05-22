@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cimareviews/app/theme.dart';
 import 'package:cimareviews/app/routes.dart';
-import 'package:cimareviews/data/services/auth_service.dart';
+import 'package:cimareviews/data/repositories/user_repository.dart';
 
 class App extends StatelessWidget {
   const App({super.key, this.initialRoute});
@@ -16,7 +16,7 @@ class App extends StatelessWidget {
       theme: theme(),
       initialRoute:
           initialRoute ??
-          (AuthService().isAuthenticated() ? '/home' : '/login'),
+          (UserRepository().isAuthenticated() ? '/home' : '/login'),
       routes: routes(),
     );
   }

@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart' show ChangeNotifier;
 
 import '../../data/models/event.dart';
+import '../../data/repositories/event_repository.dart';
 import '../../data/services/api_service.dart';
-import '../../data/services/event_service.dart';
 
 class EventsViewModel extends ChangeNotifier {
-  EventsViewModel({EventService? eventService})
-    : _eventService = eventService ?? EventService();
+  EventsViewModel({EventRepository? eventRepository})
+    : _eventRepository = eventRepository ?? EventRepository();
 
-  final EventService _eventService;
+  final EventRepository _eventRepository;
 
   List<Event> events = [];
   bool isLoading = false;
@@ -20,7 +20,7 @@ class EventsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      events = await _eventService.getEvents(limit: 100);
+      events = await _eventRepository.fetchEvents(limit: 100);
     } on ApiException catch (exception) {
       error = exception.message;
     } catch (_) {

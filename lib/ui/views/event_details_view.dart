@@ -1,7 +1,6 @@
 import 'package:cimareviews/data/models/business.dart';
 import 'package:cimareviews/data/models/event.dart';
-import 'package:cimareviews/data/services/api_service.dart';
-import 'package:cimareviews/data/services/business_service.dart';
+import 'package:cimareviews/ui/viewmodels/event_details_viewmodel.dart';
 import 'package:cimareviews/ui/views/business_details_view.dart';
 import 'package:cimareviews/ui/widgets/figma_primitives.dart';
 import 'package:flutter/material.dart';
@@ -16,54 +15,26 @@ class EventDetailsView extends StatefulWidget {
 }
 
 class _EventDetailsViewState extends State<EventDetailsView> {
-  final _businessService = BusinessService();
-  final List<Business> _businesses = [];
-  bool _isLoading = false;
-  String? _error;
+  late final EventDetailsViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _loadBusinesses();
+    _viewModel = EventDetailsViewModel(event: widget.event);
+    _viewModel.addListener(_onViewModelChanged);
+    _viewModel.loadBusinesses();
   }
 
-  Future<void> _loadBusinesses() async {
-    final businessIds = widget.event?.businessIds ?? [];
-    if (businessIds.isEmpty) {
-      return;
-    }
+  @override
+  void dispose() {
+    _viewModel.removeListener(_onViewModelChanged);
+    _viewModel.dispose();
+    super.dispose();
+  }
 
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final businesses = await Future.wait(
-        businessIds.map(_businessService.getBusiness),
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _businesses
-          ..clear()
-          ..addAll(businesses);
-      });
-    } on ApiException catch (exception) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _error = exception.message);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _error = 'No se pudieron cargar los negocios.');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+  void _onViewModelChanged() {
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -88,12 +59,11 @@ class _EventDetailsViewState extends State<EventDetailsView> {
                     text: currentEvent?.description ?? 'Detalles del evento.',
                   ),
                   _ParticipantBusinessesSection(
-                    businesses: _businesses,
-                    isLoading: _isLoading,
-                    error: _error,
-                    hasBusinessIds:
-                        currentEvent?.businessIds.isNotEmpty ?? false,
-                    onRetry: _loadBusinesses,
+                    businesses: _viewModel.businesses,
+                    isLoading: _viewModel.isLoading,
+                    error: _viewModel.error,
+                    hasBusinessIds: _viewModel.hasBusinessIds,
+                    onRetry: _viewModel.loadBusinesses,
                   ),
                 ],
               ),

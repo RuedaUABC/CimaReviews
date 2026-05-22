@@ -2,13 +2,13 @@ import 'package:flutter/foundation.dart';
 
 import '../../data/models/role.dart';
 import '../../data/models/user.dart';
-import '../../data/services/auth_service.dart';
+import '../../data/repositories/user_repository.dart';
 
 class UserProfileViewModel extends ChangeNotifier {
-  UserProfileViewModel({AuthService? authService})
-    : _authService = authService ?? AuthService();
+  UserProfileViewModel({UserRepository? userRepository})
+    : _userRepository = userRepository ?? UserRepository();
 
-  final AuthService _authService;
+  final UserRepository _userRepository;
 
   User? user;
   bool isLoading = false;
@@ -19,7 +19,7 @@ class UserProfileViewModel extends ChangeNotifier {
     error = null;
     notifyListeners();
 
-    final session = _authService.getCurrentSession();
+    final session = _userRepository.getCurrentSession();
     if (session == null || !session.isValid()) {
       user = null;
       error = 'No hay una sesion activa.';
@@ -46,5 +46,9 @@ class UserProfileViewModel extends ChangeNotifier {
     }
 
     return roles.map(roleDisplayName).join(', ');
+  }
+
+  Future<void> logout() {
+    return _userRepository.logout();
   }
 }

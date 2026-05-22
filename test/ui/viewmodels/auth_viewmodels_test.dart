@@ -1,34 +1,34 @@
 import 'package:cimareviews/data/models/role.dart';
 import 'package:cimareviews/data/models/session.dart';
 import 'package:cimareviews/data/models/user.dart';
-import 'package:cimareviews/data/services/auth_service.dart';
+import 'package:cimareviews/data/repositories/user_repository.dart';
 import 'package:cimareviews/ui/viewmodels/login_viewmodel.dart';
 import 'package:cimareviews/ui/viewmodels/register_user_viewmodel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('LoginViewModel', () {
-    test('rejects empty credentials before calling AuthService', () async {
-      final auth = _FakeAuthService();
-      final viewModel = LoginViewModel(authService: auth);
+    test('rejects empty credentials before calling UserRepository', () async {
+      final repository = _FakeUserRepository();
+      final viewModel = LoginViewModel(userRepository: repository);
 
       final result = await viewModel.login();
 
       expect(result, isFalse);
-      expect(auth.loginCalls, 0);
+      expect(repository.loginCalls, 0);
       expect(viewModel.errorMessage, 'Ingresa correo y contrasena.');
     });
 
     test('logs in with valid credentials', () async {
-      final auth = _FakeAuthService();
-      final viewModel = LoginViewModel(authService: auth)
+      final repository = _FakeUserRepository();
+      final viewModel = LoginViewModel(userRepository: repository)
         ..email = 'ana@example.com'
         ..password = 'SecurePass123';
 
       final result = await viewModel.login();
 
       expect(result, isTrue);
-      expect(auth.loginCalls, 1);
+      expect(repository.loginCalls, 1);
       expect(viewModel.isLoading, isFalse);
       expect(viewModel.errorMessage, isNull);
     });
@@ -36,10 +36,11 @@ void main() {
 
   group('RegisterUserViewModel', () {
     test('returns validation errors for invalid form', () {
-      final viewModel = RegisterUserViewModel(authService: _FakeAuthService())
-        ..email = 'bad-email'
-        ..password = 'short'
-        ..confirmPassword = 'different';
+      final viewModel =
+          RegisterUserViewModel(userRepository: _FakeUserRepository())
+            ..email = 'bad-email'
+            ..password = 'short'
+            ..confirmPassword = 'different';
 
       final errors = viewModel.validateForm();
 
@@ -52,9 +53,9 @@ void main() {
       expect(errors, contains('Las contrasenas no coinciden.'));
     });
 
-    test('registers valid user through AuthService', () async {
-      final auth = _FakeAuthService();
-      final viewModel = RegisterUserViewModel(authService: auth)
+    test('registers valid user through UserRepository', () async {
+      final repository = _FakeUserRepository();
+      final viewModel = RegisterUserViewModel(userRepository: repository)
         ..name = 'Ana Garcia'
         ..email = 'ana@example.com'
         ..password = 'SecurePass123'
@@ -63,13 +64,13 @@ void main() {
       final result = await viewModel.register();
 
       expect(result, isTrue);
-      expect(auth.registerCalls, 1);
+      expect(repository.registerCalls, 1);
       expect(viewModel.errors, isEmpty);
     });
   });
 }
 
-class _FakeAuthService extends AuthService {
+class _FakeUserRepository extends UserRepository {
   int loginCalls = 0;
   int registerCalls = 0;
 

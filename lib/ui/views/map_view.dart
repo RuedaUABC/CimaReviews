@@ -8,7 +8,7 @@ class MapView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final business = BusinessRepository.instance.getBusiness('1');
+    final business = BusinessRepository.instance.getLocalBusiness('1');
 
     return Scaffold(
       body: Stack(

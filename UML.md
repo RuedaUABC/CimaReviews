@@ -1,9 +1,11 @@
 # UML
 
-Diagrama actualizado para reflejar la arquitectura implementada actualmente en
-CimaReviews: autenticacion con sesion persistente, consumo de API, Home con
-busqueda/filtros, eventos, detalle de negocio, detalle de evento y permisos
-basicos en el menu del negocio.
+Diagrama actualizado para reflejar la arquitectura MVVM implementada actualmente
+en CimaReviews: las vistas consumen ViewModels, los ViewModels dependen de
+repositorios, y los repositorios encapsulan los servicios/API. Incluye
+autenticacion con sesion persistente, consumo de API, Home con busqueda/filtros,
+eventos, detalle de negocio, detalle de evento y permisos basicos en el menu del
+negocio.
 
 ```mermaid
 classDiagram
@@ -225,27 +227,41 @@ classDiagram
         +getEvents(int skip, int limit) Future_List_Event
     }
 
-    %% Repositorios legacy usados como fallback/demo en pantallas secundarias.
+    %% ============================
+    %% REPOSITORIOS
+    %% ============================
     class BusinessRepository {
-        <<legacy singleton>>
-        +List~Business~ businesses
-        +getBusinesses() List~Business~
-        +getBusiness(String id) Business
+        <<singleton>>
+        -BusinessService _service
+        +fetchBusinesses(int skip, int limit) Future_List_Business
+        +searchBusinesses(String query) Future_List_Business
+        +fetchBusiness(String id) Future_Business
+        +getLocalBusinesses() List~Business~
+        +getLocalBusiness(String id) Business
         +createBusiness(Business b) void
         +deleteBusiness(String id) void
     }
 
     class EventRepository {
-        <<legacy>>
-        +List~Event~ events
-        +getEvents() List~Event~
+        -EventService _service
+        +fetchEvents(int skip, int limit) Future_List_Event
+        +getLocalEvents() List~Event~
+    }
+
+    class UserRepository {
+        -AuthService _authService
+        +login(String email, String password) Future_Session
+        +register(String name, String email, String password) Future_User
+        +logout() Future_void
+        +isAuthenticated() bool
+        +getCurrentSession() Session?
     }
 
     %% ============================
     %% VIEWMODELS
     %% ============================
     class LoginViewModel {
-        -AuthService _authService
+        -UserRepository _userRepository
         +String email
         +String password
         +bool isLoading
@@ -258,7 +274,7 @@ classDiagram
     }
 
     class RegisterUserViewModel {
-        -AuthService _authService
+        -UserRepository _userRepository
         +String name
         +String email
         +String password
@@ -271,7 +287,7 @@ classDiagram
     }
 
     class HomeViewModel {
-        -BusinessService _businessService
+        -BusinessRepository _businessRepository
         -List~Business~ _allBusinesses
         -List~Business~ _searchResults
         +bool isLoading
@@ -288,7 +304,7 @@ classDiagram
     }
 
     class BusinessDetailsViewModel {
-        -BusinessService _businessService
+        -BusinessRepository _businessRepository
         +Business business
         +bool isLoading
         +String? error
@@ -296,7 +312,7 @@ classDiagram
     }
 
     class EventsViewModel {
-        -EventService _eventService
+        -EventRepository _eventRepository
         +List~Event~ events
         +bool isLoading
         +String? error
@@ -305,13 +321,31 @@ classDiagram
     }
 
     class UserProfileViewModel {
-        -AuthService _authService
+        -UserRepository _userRepository
         +User? user
         +bool isLoading
         +String? error
         +loadCurrentUser() void
+        +logout() Future_void
         +displayName String
         +displayRole String
+    }
+
+    class EventDetailsViewModel {
+        -BusinessRepository _businessRepository
+        +Event? event
+        +List~Business~ businesses
+        +bool isLoading
+        +String? error
+        +hasBusinessIds bool
+        +loadBusinesses() Future_void
+    }
+
+    class BusinessMenuViewModel {
+        -UserRepository _userRepository
+        +Business business
+        +currentUser User?
+        +isOwner bool
     }
 
     %% ============================
@@ -356,24 +390,19 @@ classDiagram
 
     class EventDetailsView {
         +Event? event
-        -BusinessService _businessService
-        -List~Business~ _businesses
-        -bool _isLoading
-        -String? _error
-        -_loadBusinesses() Future~void~
+        -EventDetailsViewModel _viewModel
     }
 
     class UserProfileView {
         -UserProfileViewModel _viewModel
-        -AuthService _authService
         -bool _isLoggingOut
         -_logout() Future~void~
     }
 
     class BusinessMenuView {
         +Business? routeArgument
+        -BusinessMenuViewModel _viewModel
         +build(BuildContext context) Widget
-        -isOwner bool
     }
 
     class CimaNavigationScaffold {
@@ -420,33 +449,37 @@ classDiagram
     EventService --> ApiService : uses
     EventService --> Event : maps JSON
 
-    BusinessRepository --> Business : legacy data
-    EventRepository --> Event : legacy data
+    BusinessRepository --> BusinessService : wraps API access
+    BusinessRepository --> Business : local fallback data
+    EventRepository --> EventService : wraps API access
+    EventRepository --> Event : local fallback data
+    UserRepository --> AuthService : wraps auth/session
 
     %% ============================
-    %% RELACIONES VIEWMODEL -> SERVICIO
+    %% RELACIONES VIEWMODEL -> REPOSITORIO
     %% ============================
-    LoginViewModel --> AuthService : login/register state
-    RegisterUserViewModel --> AuthService : register
-    HomeViewModel --> BusinessService : list/search/filter
-    BusinessDetailsViewModel --> BusinessService : load full detail
-    EventsViewModel --> EventService : list events
-    UserProfileViewModel --> AuthService : current session
+    LoginViewModel --> UserRepository : login state
+    RegisterUserViewModel --> UserRepository : register state
+    HomeViewModel --> BusinessRepository : list/search/filter
+    BusinessDetailsViewModel --> BusinessRepository : load full detail
+    EventsViewModel --> EventRepository : list events
+    EventDetailsViewModel --> BusinessRepository : participant previews
+    BusinessMenuViewModel --> UserRepository : owner permissions
+    UserProfileViewModel --> UserRepository : current session/logout
 
     %% ============================
-    %% RELACIONES VIEW -> VIEWMODEL/SERVICIO
+    %% RELACIONES VIEW -> VIEWMODEL/REPOSITORIO
     %% ============================
-    App --> AuthService : initialRoute auth check
+    App --> UserRepository : initialRoute auth check
     LoginView --> LoginViewModel : owns
     RegisterUserView --> RegisterUserViewModel : owns
     HomeView --> HomeViewModel : owns
     BusinessDetailsView --> BusinessDetailsViewModel : owns
     EventsView --> EventsViewModel : owns
-    EventDetailsView --> BusinessService : loads participant businesses
+    EventDetailsView --> EventDetailsViewModel : owns
     UserProfileView --> UserProfileViewModel : owns
-    UserProfileView --> AuthService : logout
-    BusinessMenuView --> AuthService : checks current user
-    BusinessMenuView --> BusinessRepository : fallback only
+    BusinessMenuView --> BusinessMenuViewModel : owns
+    BusinessMenuView --> BusinessRepository : fallback business
 
     HomeView ..> BusinessDetailsView : opens selected business
     EventsView ..> EventDetailsView : opens selected event
@@ -465,6 +498,7 @@ sequenceDiagram
     participant Main
     participant Storage as LocalStorageService
     participant App
+    participant UserRepo as UserRepository
     participant Auth as AuthService
     participant Api as ApiService
     participant UI as Home/Login
@@ -472,7 +506,8 @@ sequenceDiagram
     Main->>Storage: init()
     Storage->>Storage: load Session from SharedPreferences
     Main->>App: runApp()
-    App->>Auth: isAuthenticated()
+    App->>UserRepo: isAuthenticated()
+    UserRepo->>Auth: isAuthenticated()
     Auth->>Storage: getSession()
     alt Session valida
         App->>UI: initialRoute /home
@@ -480,48 +515,93 @@ sequenceDiagram
         App->>UI: initialRoute /login
     end
 
-    UI->>Auth: login(email, password)
+    UI->>UserRepo: login(email, password)
+    UserRepo->>Auth: login(email, password)
     Auth->>Api: POST /api/v1/auth/login
     Api-->>Auth: LoginResponse(token, user, expires_at)
     Auth->>Storage: setSession(session)
+    Auth-->>UserRepo: Session
+    UserRepo-->>UI: Session
 ```
 
 ```mermaid
 sequenceDiagram
     participant Home
     participant HomeVM as HomeViewModel
+    participant BusinessRepo as BusinessRepository
     participant BusinessSvc as BusinessService
     participant Api as ApiService
 
     Home->>HomeVM: loadBusinesses()
-    HomeVM->>BusinessSvc: getBusinesses(skip, limit)
+    HomeVM->>BusinessRepo: fetchBusinesses(skip, limit)
+    BusinessRepo->>BusinessSvc: getBusinesses(skip, limit)
     BusinessSvc->>Api: GET /api/v1/businesses/
     Api-->>BusinessSvc: BusinessListResponse[]
-    BusinessSvc-->>HomeVM: List<Business>
+    BusinessSvc-->>BusinessRepo: List<Business>
+    BusinessRepo-->>HomeVM: List<Business>
     HomeVM-->>Home: businesses + categories
 
     Home->>HomeVM: updateSearchQuery(q)
-    HomeVM->>BusinessSvc: searchBusinesses(q)
+    HomeVM->>BusinessRepo: searchBusinesses(q)
+    BusinessRepo->>BusinessSvc: searchBusinesses(q)
     BusinessSvc->>Api: GET /api/v1/businesses/search?q=q
     Api-->>BusinessSvc: BusinessListResponse[]
+    BusinessSvc-->>BusinessRepo: List<Business>
+    BusinessRepo-->>HomeVM: List<Business>
 ```
 
 ```mermaid
 sequenceDiagram
     participant Details as BusinessDetailsView
     participant VM as BusinessDetailsViewModel
+    participant BusinessRepo as BusinessRepository
     participant BusinessSvc as BusinessService
     participant Menu as BusinessMenuView
-    participant Auth as AuthService
+    participant MenuVM as BusinessMenuViewModel
+    participant UserRepo as UserRepository
 
     Details->>VM: loadDetails()
-    VM->>BusinessSvc: getBusiness(business.id)
-    BusinessSvc-->>VM: BusinessDetailResponse
+    VM->>BusinessRepo: fetchBusiness(business.id)
+    BusinessRepo->>BusinessSvc: getBusiness(business.id)
+    BusinessSvc-->>BusinessRepo: BusinessDetailResponse
+    BusinessRepo-->>VM: Business
     Details->>Menu: open with Business argument
-    Menu->>Auth: getCurrentSession()
+    Menu->>MenuVM: isOwner
+    MenuVM->>UserRepo: getCurrentSession()
     alt currentUser.id == business.owner.id
         Menu-->>Menu: show add product/category actions
     else Cliente o no duenio
         Menu-->>Menu: hide owner-only actions
     end
+```
+
+```mermaid
+sequenceDiagram
+    participant Events as EventsView
+    participant EventsVM as EventsViewModel
+    participant EventRepo as EventRepository
+    participant EventSvc as EventService
+    participant Api as ApiService
+    participant Details as EventDetailsView
+    participant DetailsVM as EventDetailsViewModel
+    participant BusinessRepo as BusinessRepository
+    participant BusinessSvc as BusinessService
+
+    Events->>EventsVM: loadEvents()
+    EventsVM->>EventRepo: fetchEvents(skip, limit)
+    EventRepo->>EventSvc: getEvents(skip, limit)
+    EventSvc->>Api: GET /api/v1/events/
+    Api-->>EventSvc: EventResponse[]
+    EventSvc-->>EventRepo: List<Event>
+    EventRepo-->>EventsVM: List<Event>
+
+    Events->>Details: open selected event
+    Details->>DetailsVM: loadBusinesses()
+    loop businessIds
+        DetailsVM->>BusinessRepo: fetchBusiness(id)
+        BusinessRepo->>BusinessSvc: getBusiness(id)
+        BusinessSvc-->>BusinessRepo: BusinessDetailResponse
+        BusinessRepo-->>DetailsVM: Business
+    end
+    DetailsVM-->>Details: participant businesses
 ```

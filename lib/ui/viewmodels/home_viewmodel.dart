@@ -4,14 +4,14 @@ import 'package:flutter/foundation.dart' show ChangeNotifier;
 
 import '../../data/models/business.dart';
 import '../../data/models/category.dart';
+import '../../data/repositories/business_repository.dart';
 import '../../data/services/api_service.dart';
-import '../../data/services/business_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
-  HomeViewModel({BusinessService? businessService})
-    : _businessService = businessService ?? BusinessService();
+  HomeViewModel({BusinessRepository? businessRepository})
+    : _businessRepository = businessRepository ?? BusinessRepository.instance;
 
-  final BusinessService _businessService;
+  final BusinessRepository _businessRepository;
 
   final List<Business> _allBusinesses = [];
   final List<Business> _searchResults = [];
@@ -54,7 +54,7 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final businesses = await _businessService.getBusinesses(limit: 100);
+      final businesses = await _businessRepository.fetchBusinesses(limit: 100);
       _allBusinesses
         ..clear()
         ..addAll(businesses);
@@ -101,7 +101,7 @@ class HomeViewModel extends ChangeNotifier {
     }
 
     try {
-      final results = await _businessService.searchBusinesses(query);
+      final results = await _businessRepository.searchBusinesses(query);
       if (query != searchQuery.trim()) {
         return;
       }

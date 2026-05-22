@@ -1,17 +1,17 @@
 import 'package:flutter/foundation.dart' show ChangeNotifier;
 
 import '../../data/models/business.dart';
+import '../../data/repositories/business_repository.dart';
 import '../../data/services/api_service.dart';
-import '../../data/services/business_service.dart';
 
 class BusinessDetailsViewModel extends ChangeNotifier {
   BusinessDetailsViewModel({
     required Business initialBusiness,
-    BusinessService? businessService,
+    BusinessRepository? businessRepository,
   }) : business = initialBusiness,
-       _businessService = businessService ?? BusinessService();
+       _businessRepository = businessRepository ?? BusinessRepository.instance;
 
-  final BusinessService _businessService;
+  final BusinessRepository _businessRepository;
 
   Business business;
   bool isLoading = false;
@@ -27,7 +27,7 @@ class BusinessDetailsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      business = await _businessService.getBusiness(business.id);
+      business = await _businessRepository.fetchBusiness(business.id);
     } on ApiException catch (exception) {
       error = exception.message;
     } catch (_) {

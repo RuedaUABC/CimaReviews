@@ -1,7 +1,7 @@
 import 'package:cimareviews/data/models/role.dart';
 import 'package:cimareviews/data/models/session.dart';
 import 'package:cimareviews/data/models/user.dart';
-import 'package:cimareviews/data/services/auth_service.dart';
+import 'package:cimareviews/data/repositories/user_repository.dart';
 import 'package:cimareviews/ui/viewmodels/user_profile_viewmodel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,7 +9,7 @@ void main() {
   group('UserProfileViewModel', () {
     test('shows current user name and role from active session', () {
       final viewModel = UserProfileViewModel(
-        authService: _FakeAuthService(
+        userRepository: _FakeUserRepository(
           session: Session(
             token: 'token',
             user: User(
@@ -32,7 +32,7 @@ void main() {
 
     test('reports missing active session', () {
       final viewModel = UserProfileViewModel(
-        authService: _FakeAuthService(session: null),
+        userRepository: _FakeUserRepository(session: null),
       );
 
       viewModel.loadCurrentUser();
@@ -45,8 +45,8 @@ void main() {
   });
 }
 
-class _FakeAuthService extends AuthService {
-  _FakeAuthService({required this.session});
+class _FakeUserRepository extends UserRepository {
+  _FakeUserRepository({required this.session});
 
   final Session? session;
 

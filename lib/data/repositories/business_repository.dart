@@ -1,4 +1,5 @@
 import 'package:cimareviews/data/models/role.dart';
+import 'package:cimareviews/data/services/business_service.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../models/business.dart';
@@ -8,10 +9,54 @@ import '../models/review.dart';
 import '../models/user.dart';
 
 class BusinessRepository {
-  static final BusinessRepository _instance = BusinessRepository._internal();
+  BusinessRepository({BusinessService? service, List<Business>? seedBusinesses})
+    : _service = service ?? BusinessService(),
+      businesses = seedBusinesses ?? _mockBusinesses();
 
-  BusinessRepository._internal() {
-    businesses = [
+  static final BusinessRepository instance = BusinessRepository();
+
+  final BusinessService _service;
+  final List<Business> businesses;
+
+  Future<List<Business>> fetchBusinesses({int skip = 0, int limit = 20}) async {
+    final remoteBusinesses = await _service.getBusinesses(
+      skip: skip,
+      limit: limit,
+    );
+    businesses
+      ..clear()
+      ..addAll(remoteBusinesses);
+    return remoteBusinesses;
+  }
+
+  Future<List<Business>> searchBusinesses(String query) {
+    return _service.searchBusinesses(query);
+  }
+
+  Future<Business> fetchBusiness(String id) async {
+    final business = await _service.getBusiness(id);
+    final index = businesses.indexWhere((item) => item.id == id);
+    if (index == -1) {
+      businesses.add(business);
+    } else {
+      businesses[index] = business;
+    }
+    return business;
+  }
+
+  List<Business> getLocalBusinesses() => businesses;
+
+  Business getLocalBusiness(String id) =>
+      businesses.firstWhere((business) => business.id == id);
+
+  void createBusiness(Business business) => businesses.add(business);
+
+  void deleteBusiness(String id) {
+    businesses.removeWhere((business) => business.id == id);
+  }
+
+  static List<Business> _mockBusinesses() {
+    return [
       Business(
         owner: User(
           id: '1',
@@ -20,7 +65,7 @@ class BusinessRepository {
           role: Seller(),
         ),
         id: '1',
-        name: 'D’Volada',
+        name: 'Dâ€™Volada',
         products: [
           Product(name: 'Espresso', price: 40.0),
           Product(name: 'Cappuccino', price: 50.0),
@@ -28,7 +73,7 @@ class BusinessRepository {
           Product(name: 'Croissant', price: 70.0),
         ],
         categories: [Category.cafeteria],
-        location: LatLng(32.5308, -116.9824),
+        location: const LatLng(32.5308, -116.9824),
         avgRating: 4.5,
         reviews: [
           Review(
@@ -82,7 +127,7 @@ class BusinessRepository {
           Product(name: 'Papas', price: 45.0),
         ],
         categories: [Category.hamburguesas],
-        location: LatLng(32.529, -116.984),
+        location: const LatLng(32.529, -116.984),
         avgRating: 4.2,
         reviews: List.empty(),
         imageUrl:
@@ -102,7 +147,7 @@ class BusinessRepository {
           Product(name: 'Torta de pollo', price: 12.0),
         ],
         categories: [Category.mexicana],
-        location: LatLng(32.527, -116.986),
+        location: const LatLng(32.527, -116.986),
         avgRating: 4.8,
         reviews: List.empty(),
         imageUrl:
@@ -110,16 +155,4 @@ class BusinessRepository {
       ),
     ];
   }
-
-  static BusinessRepository get instance => _instance;
-
-  late List<Business> businesses;
-
-  List<Business> getBusinesses() => businesses;
-
-  Business getBusiness(String id) => businesses.firstWhere((b) => b.id == id);
-
-  void createBusiness(Business b) => businesses.add(b);
-
-  void deleteBusiness(String id) => businesses.removeWhere((b) => b.id == id);
 }

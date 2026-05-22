@@ -1,7 +1,7 @@
 import 'package:cimareviews/data/models/business.dart';
 import 'package:cimareviews/data/models/product.dart';
 import 'package:cimareviews/data/repositories/business_repository.dart';
-import 'package:cimareviews/data/services/auth_service.dart';
+import 'package:cimareviews/ui/viewmodels/business_menu_viewmodel.dart';
 import 'package:cimareviews/ui/views/business_details_view.dart';
 import 'package:cimareviews/ui/widgets/figma_primitives.dart';
 import 'package:flutter/material.dart';
@@ -108,7 +108,7 @@ class MyBusinessesView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final businesses = BusinessRepository.instance.getBusinesses();
+    final businesses = BusinessRepository.instance.getLocalBusinesses();
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -176,9 +176,8 @@ class BusinessMenuView extends StatelessWidget {
     final argument = ModalRoute.of(context)?.settings.arguments;
     final business = argument is Business
         ? argument
-        : BusinessRepository.instance.getBusiness('1');
-    final currentUser = AuthService().getCurrentSession()?.user;
-    final isOwner = currentUser != null && currentUser.id == business.owner.id;
+        : BusinessRepository.instance.getLocalBusiness('1');
+    final viewModel = BusinessMenuViewModel(business: business);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -198,7 +197,7 @@ class BusinessMenuView extends StatelessWidget {
                   else
                     for (final product in business.products)
                       _MenuProductTile(product: product),
-                  if (isOwner) ...[
+                  if (viewModel.isOwner) ...[
                     const SizedBox(height: 16),
                     FigmaButton(
                       label: 'Agregar Producto',
