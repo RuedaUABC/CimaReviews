@@ -12,4 +12,13 @@ class Product {
       description: json['description']?.toString(),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'price': price,
+      if (description != null && description!.trim().isNotEmpty)
+        'description': description!.trim(),
+    };
+  }
 }

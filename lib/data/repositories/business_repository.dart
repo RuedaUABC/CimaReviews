@@ -49,10 +49,62 @@ class BusinessRepository {
   Business getLocalBusiness(String id) =>
       businesses.firstWhere((business) => business.id == id);
 
-  void createBusiness(Business business) => businesses.add(business);
+  Future<Business> createBusiness(Business business) async {
+    Business savedBusiness = business;
+
+    try {
+      savedBusiness = await _service.createBusiness(business);
+      if (savedBusiness.imageUrl == null || savedBusiness.imageUrl!.isEmpty) {
+        savedBusiness.imageUrl = business.imageUrl;
+      }
+    } catch (_) {
+      savedBusiness = business;
+    }
+
+    final index = businesses.indexWhere((item) => item.id == savedBusiness.id);
+    if (index == -1) {
+      businesses.insert(0, savedBusiness);
+    } else {
+      businesses[index] = savedBusiness;
+    }
+
+    return savedBusiness;
+  }
+
+  Future<Business> addProduct(String businessId, Product product) async {
+    final business = getLocalBusiness(businessId);
+    final updatedProducts = [...business.products, product];
+
+    try {
+      final savedBusiness = await _service.updateBusinessProducts(
+        business,
+        updatedProducts,
+      );
+      _mergeBusiness(business, savedBusiness);
+      if (business.products.isEmpty) {
+        business.products = updatedProducts;
+      }
+    } catch (_) {
+      business.products = updatedProducts;
+    }
+
+    return business;
+  }
 
   void deleteBusiness(String id) {
     businesses.removeWhere((business) => business.id == id);
+  }
+
+  void _mergeBusiness(Business target, Business source) {
+    target.id = source.id.isEmpty ? target.id : source.id;
+    target.name = source.name.isEmpty ? target.name : source.name;
+    target.location = source.location;
+    target.avgRating = source.avgRating;
+    target.products = source.products;
+    target.reviews = source.reviews;
+    target.categories = source.categories;
+    target.description = source.description ?? target.description;
+    target.imageUrl = source.imageUrl ?? target.imageUrl;
   }
 
   static List<Business> _mockBusinesses() {

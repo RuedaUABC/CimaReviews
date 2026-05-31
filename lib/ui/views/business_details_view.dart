@@ -2,6 +2,7 @@ import 'package:cimareviews/data/models/business.dart';
 import 'package:cimareviews/data/models/product.dart';
 import 'package:cimareviews/data/models/review.dart';
 import 'package:cimareviews/ui/viewmodels/business_details_viewmodel.dart';
+import 'package:cimareviews/ui/views/write_review_view.dart';
 import 'package:cimareviews/ui/widgets/figma_primitives.dart';
 import 'package:flutter/material.dart';
 
@@ -58,9 +59,17 @@ class _BusinessDetailsViewState extends State<BusinessDetailsView> {
                     onRetry: _viewModel.loadDetails,
                   ),
                 _BusinessSummary(business: business),
-                _ProductsSection(business: business),
+                _ProductsSection(
+                  business: business,
+                  onOpenMenu: _openBusinessMenu,
+                ),
                 const SizedBox(height: 16),
-                _ReviewsSection(reviews: business.reviews),
+                _ReviewsSection(
+                  reviews: business.reviews,
+                  canDeleteReview: _viewModel.canDeleteReview,
+                  deletingReviewId: _viewModel.deletingReviewId,
+                  onDeleteReview: _deleteReview,
+                ),
                 const SizedBox(height: 104),
               ],
             ),
@@ -79,12 +88,74 @@ class _BusinessDetailsViewState extends State<BusinessDetailsView> {
             child: FigmaButton(
               label: 'Escribir Resena',
               icon: Icons.add,
-              onPressed: () => Navigator.pushNamed(context, '/write-review'),
+              onPressed: () async {
+                final created = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute<bool>(
+                    builder: (context) => WriteReviewView(business: business),
+                  ),
+                );
+                if (created == true && mounted) {
+                  setState(() {});
+                }
+              },
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _deleteReview(Review review) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Eliminar resena'),
+          content: const Text('Esta accion quitara la resena del negocio.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFB91C1C),
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final deleted = await _viewModel.deleteReview(review);
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          deleted
+              ? 'Resena eliminada.'
+              : _viewModel.error ?? 'No se pudo eliminar la resena.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openBusinessMenu(Business business) async {
+    await Navigator.pushNamed(context, '/business-menu', arguments: business);
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 }
 
@@ -232,9 +303,10 @@ class _LocationButton extends StatelessWidget {
 }
 
 class _ProductsSection extends StatelessWidget {
-  const _ProductsSection({required this.business});
+  const _ProductsSection({required this.business, required this.onOpenMenu});
 
   final Business business;
+  final ValueChanged<Business> onOpenMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -252,11 +324,7 @@ class _ProductsSection extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.pushNamed(
-                  context,
-                  '/business-menu',
-                  arguments: business,
-                ),
+                onPressed: () => onOpenMenu(business),
                 child: const Text('Ver menu'),
               ),
             ],
@@ -327,9 +395,17 @@ class _ProductRow extends StatelessWidget {
 }
 
 class _ReviewsSection extends StatelessWidget {
-  const _ReviewsSection({required this.reviews});
+  const _ReviewsSection({
+    required this.reviews,
+    required this.canDeleteReview,
+    required this.deletingReviewId,
+    required this.onDeleteReview,
+  });
 
   final List<Review> reviews;
+  final bool Function(Review review) canDeleteReview;
+  final String? deletingReviewId;
+  final ValueChanged<Review> onDeleteReview;
 
   @override
   Widget build(BuildContext context) {
@@ -353,7 +429,13 @@ class _ReviewsSection extends StatelessWidget {
             const _EmptySectionMessage(message: 'Todavia no hay resenas.')
           else
             for (int index = 0; index < reviews.length; index++)
-              _ReviewCard(review: reviews[index], index: index),
+              _ReviewCard(
+                review: reviews[index],
+                index: index,
+                canDelete: canDeleteReview(reviews[index]),
+                isDeleting: deletingReviewId == reviews[index].id,
+                onDelete: () => onDeleteReview(reviews[index]),
+              ),
         ],
       ),
     );
@@ -361,10 +443,19 @@ class _ReviewsSection extends StatelessWidget {
 }
 
 class _ReviewCard extends StatelessWidget {
-  const _ReviewCard({required this.review, required this.index});
+  const _ReviewCard({
+    required this.review,
+    required this.index,
+    required this.canDelete,
+    required this.isDeleting,
+    required this.onDelete,
+  });
 
   final Review review;
   final int index;
+  final bool canDelete;
+  final bool isDeleting;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -409,6 +500,21 @@ class _ReviewCard extends StatelessWidget {
                     Navigator.pushNamed(context, '/register-report'),
                 child: const Text('Reportar'),
               ),
+              if (canDelete)
+                TextButton.icon(
+                  onPressed: isDeleting ? null : onDelete,
+                  icon: isDeleting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline, size: 18),
+                  label: Text(isDeleting ? 'Eliminando' : 'Eliminar'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFB91C1C),
+                  ),
+                ),
             ],
           ),
           if (review.images.isNotEmpty) ...[

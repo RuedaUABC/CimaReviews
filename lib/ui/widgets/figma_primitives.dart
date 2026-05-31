@@ -83,6 +83,7 @@ class FigmaField extends StatelessWidget {
     this.keyboardType,
     this.textInputAction,
     this.enabled = true,
+    this.onChanged,
     this.onSubmitted,
   });
 
@@ -94,6 +95,7 @@ class FigmaField extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final bool enabled;
+  final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
 
   @override
@@ -117,6 +119,7 @@ class FigmaField extends StatelessWidget {
             enabled: enabled,
             keyboardType: keyboardType,
             textInputAction: textInputAction,
+            onChanged: onChanged,
             onSubmitted: onSubmitted,
             minLines: obscure ? 1 : lines,
             maxLines: obscure ? 1 : lines,

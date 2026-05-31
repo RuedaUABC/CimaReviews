@@ -1,4 +1,6 @@
 import '../models/business.dart';
+import '../models/category.dart';
+import '../models/product.dart';
 import 'api_service.dart';
 
 class BusinessService {
@@ -26,6 +28,60 @@ class BusinessService {
 
   Future<Business> getBusiness(String id) async {
     final data = await _api.get('/api/v1/businesses/$id');
+
+    return Business.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  Future<Business> createBusiness(Business business) async {
+    final data = await _api.post(
+      '/api/v1/businesses/',
+      body: {
+        'name': business.name.trim(),
+        'owner_id': business.owner.id,
+        'location': {
+          'lat': business.location.latitude,
+          'lng': business.location.longitude,
+        },
+        'categories': business.categories.map(categoryToApiName).toList(),
+        if (business.description != null &&
+            business.description!.trim().isNotEmpty)
+          'description': business.description!.trim(),
+        'products': business.products
+            .map(
+              (product) => {
+                'name': product.name,
+                'price': product.price,
+                if (product.description != null &&
+                    product.description!.trim().isNotEmpty)
+                  'description': product.description,
+              },
+            )
+            .toList(),
+      },
+    );
+
+    return Business.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  Future<Business> updateBusinessProducts(
+    Business business,
+    List<Product> products,
+  ) async {
+    final data = await _api.put(
+      '/api/v1/businesses/${business.id}',
+      body: {
+        'name': business.name.trim(),
+        'location': {
+          'lat': business.location.latitude,
+          'lng': business.location.longitude,
+        },
+        'categories': business.categories.map(categoryToApiName).toList(),
+        if (business.description != null &&
+            business.description!.trim().isNotEmpty)
+          'description': business.description!.trim(),
+        'products': products.map((product) => product.toJson()).toList(),
+      },
+    );
 
     return Business.fromJson(Map<String, dynamic>.from(data as Map));
   }

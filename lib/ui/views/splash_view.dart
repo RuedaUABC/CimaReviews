@@ -1,6 +1,7 @@
 import 'package:cimareviews/data/models/business.dart';
 import 'package:cimareviews/data/models/product.dart';
 import 'package:cimareviews/data/repositories/business_repository.dart';
+import 'package:cimareviews/ui/viewmodels/add_product_viewmodel.dart';
 import 'package:cimareviews/ui/viewmodels/business_menu_viewmodel.dart';
 import 'package:cimareviews/ui/views/business_details_view.dart';
 import 'package:cimareviews/ui/widgets/figma_primitives.dart';
@@ -103,9 +104,14 @@ class RegisterSuccessView extends StatelessWidget {
   }
 }
 
-class MyBusinessesView extends StatelessWidget {
+class MyBusinessesView extends StatefulWidget {
   const MyBusinessesView({super.key});
 
+  @override
+  State<MyBusinessesView> createState() => _MyBusinessesViewState();
+}
+
+class _MyBusinessesViewState extends State<MyBusinessesView> {
   @override
   Widget build(BuildContext context) {
     final businesses = BusinessRepository.instance.getLocalBusinesses();
@@ -122,8 +128,15 @@ class MyBusinessesView extends StatelessWidget {
                   FigmaButton(
                     label: 'Registrar Negocio',
                     icon: Icons.add,
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/register-business'),
+                    onPressed: () async {
+                      final created = await Navigator.pushNamed(
+                        context,
+                        '/register-business',
+                      );
+                      if (created == true && mounted) {
+                        setState(() {});
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
                   for (final business in businesses)
@@ -168,15 +181,32 @@ class MyReviewsView extends StatelessWidget {
   }
 }
 
-class BusinessMenuView extends StatelessWidget {
+class BusinessMenuView extends StatefulWidget {
   const BusinessMenuView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<BusinessMenuView> createState() => _BusinessMenuViewState();
+}
+
+class _BusinessMenuViewState extends State<BusinessMenuView> {
+  Business? _business;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _business ??= _businessFromRoute();
+  }
+
+  Business _businessFromRoute() {
     final argument = ModalRoute.of(context)?.settings.arguments;
-    final business = argument is Business
+    return argument is Business
         ? argument
         : BusinessRepository.instance.getLocalBusiness('1');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final business = _business!;
     final viewModel = BusinessMenuViewModel(business: business);
 
     return Scaffold(
@@ -202,8 +232,16 @@ class BusinessMenuView extends StatelessWidget {
                     FigmaButton(
                       label: 'Agregar Producto',
                       icon: Icons.add,
-                      onPressed: () =>
-                          Navigator.pushNamed(context, '/add-product'),
+                      onPressed: () async {
+                        final created = await Navigator.pushNamed(
+                          context,
+                          '/add-product',
+                          arguments: business,
+                        );
+                        if (created == true && mounted) {
+                          setState(() {});
+                        }
+                      },
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton(
@@ -301,15 +339,89 @@ class _OwnerOnlyNotice extends StatelessWidget {
   }
 }
 
-class AddProductView extends StatelessWidget {
+class AddProductView extends StatefulWidget {
   const AddProductView({super.key});
 
   @override
+  State<AddProductView> createState() => _AddProductViewState();
+}
+
+class _AddProductViewState extends State<AddProductView> {
+  final _nameController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  AddProductViewModel? _viewModel;
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) {
+      return;
+    }
+
+    _initialized = true;
+    final argument = ModalRoute.of(context)?.settings.arguments;
+    if (argument is Business) {
+      _viewModel = AddProductViewModel(business: argument)
+        ..addListener(_onViewModelChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _viewModel?.removeListener(_onViewModelChanged);
+    _viewModel?.dispose();
+    _nameController.dispose();
+    _priceController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  void _onViewModelChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _submit() async {
+    final viewModel = _viewModel;
+    if (viewModel == null) {
+      return;
+    }
+
+    final added = await viewModel.addProduct();
+    if (!mounted) {
+      return;
+    }
+
+    if (added) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Producto agregado.')));
+      Navigator.pop(context, true);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final viewModel = _viewModel;
+    if (viewModel == null) {
+      return const _MissingBusinessEditor();
+    }
+
     return _ProductEditor(
       title: 'Agregar Producto',
-      button: 'Agregar Producto',
-      onSubmit: () => Navigator.pop(context),
+      button: viewModel.isLoading ? 'Agregando...' : 'Agregar Producto',
+      nameController: _nameController,
+      priceController: _priceController,
+      descriptionController: _descriptionController,
+      enabled: !viewModel.isLoading,
+      errors: viewModel.errors,
+      onNameChanged: viewModel.updateName,
+      onPriceChanged: viewModel.updatePrice,
+      onDescriptionChanged: viewModel.updateDescription,
+      onSubmit: viewModel.isLoading ? null : _submit,
     );
   }
 }
@@ -322,6 +434,8 @@ class EditProductView extends StatelessWidget {
     return _ProductEditor(
       title: 'Editar Producto',
       button: 'Guardar Cambios',
+      enabled: true,
+      errors: const [],
       onSubmit: () => Navigator.pop(context),
     );
   }
@@ -393,12 +507,28 @@ class _ProductEditor extends StatelessWidget {
   const _ProductEditor({
     required this.title,
     required this.button,
+    required this.enabled,
+    required this.errors,
     required this.onSubmit,
+    this.nameController,
+    this.priceController,
+    this.descriptionController,
+    this.onNameChanged,
+    this.onPriceChanged,
+    this.onDescriptionChanged,
   });
 
   final String title;
   final String button;
-  final VoidCallback onSubmit;
+  final bool enabled;
+  final List<String> errors;
+  final VoidCallback? onSubmit;
+  final TextEditingController? nameController;
+  final TextEditingController? priceController;
+  final TextEditingController? descriptionController;
+  final ValueChanged<String>? onNameChanged;
+  final ValueChanged<String>? onPriceChanged;
+  final ValueChanged<String>? onDescriptionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -412,22 +542,97 @@ class _ProductEditor extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  const FigmaField(
+                  FigmaField(
                     label: 'Nombre',
                     hint: 'Nombre del producto',
+                    controller: nameController,
+                    enabled: enabled,
+                    textInputAction: TextInputAction.next,
+                    onChanged: onNameChanged,
                   ),
-                  const FigmaField(label: 'Precio', hint: '\$50'),
-                  const FigmaField(
+                  FigmaField(
+                    label: 'Precio',
+                    hint: '\$50',
+                    controller: priceController,
+                    enabled: enabled,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    textInputAction: TextInputAction.next,
+                    onChanged: onPriceChanged,
+                  ),
+                  FigmaField(
                     label: 'Descripcion',
                     hint: 'Descripcion breve',
                     lines: 4,
+                    controller: descriptionController,
+                    enabled: enabled,
+                    onChanged: onDescriptionChanged,
+                    onSubmitted: (_) => onSubmit?.call(),
                   ),
+                  if (errors.isNotEmpty) ...[
+                    _ErrorList(errors: errors),
+                    const SizedBox(height: 16),
+                  ],
                   FigmaButton(label: button, onPressed: onSubmit),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MissingBusinessEditor extends StatelessWidget {
+  const _MissingBusinessEditor();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _SimpleScaffold(
+      title: 'Agregar Producto',
+      body: [
+        _InfoBlock(
+          title: 'Negocio no encontrado',
+          text: 'Abre esta pantalla desde el menu de un negocio.',
+        ),
+      ],
+    );
+  }
+}
+
+class _ErrorList extends StatelessWidget {
+  const _ErrorList({required this.errors});
+
+  final List<String> errors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final error in errors)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                error,
+                style: const TextStyle(
+                  color: Color(0xFF991B1B),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -110,6 +110,7 @@ classDiagram
         +double price
         +String? description
         +Product.fromJson(Map json)
+        +toJson() Map
     }
 
     class Review {
@@ -219,7 +220,15 @@ classDiagram
         +getBusinesses(int skip, int limit) Future_List_Business
         +searchBusinesses(String query) Future_List_Business
         +getBusiness(String id) Future~Business~
+        +createBusiness(Business business) Future~Business~
+        +updateBusinessProducts(Business business, List~Product~ products) Future~Business~
         -_parseBusinessList(dynamic data) List~Business~
+    }
+
+    class ReviewService {
+        -ApiService _api
+        +createReview(Review review) Future~Review~
+        +deleteReview(String id) Future~void~
     }
 
     class EventService {
@@ -238,7 +247,8 @@ classDiagram
         +fetchBusiness(String id) Future_Business
         +getLocalBusinesses() List~Business~
         +getLocalBusiness(String id) Business
-        +createBusiness(Business b) void
+        +createBusiness(Business b) Future~Business~
+        +addProduct(String businessId, Product product) Future~Business~
         +deleteBusiness(String id) void
     }
 
@@ -255,6 +265,15 @@ classDiagram
         +logout() Future_void
         +isAuthenticated() bool
         +getCurrentSession() Session?
+    }
+
+    class ReviewRepository {
+        -ReviewService _service
+        -BusinessRepository _businessRepository
+        +createReview(Review r, String userId) bool
+        +submitReview(Review review) Future~Review~
+        +deleteReview(String id, String userId, bool canDeleteAny) Future~bool~
+        +hasReviewForBusiness(String businessId, String userId) bool
     }
 
     %% ============================
@@ -286,6 +305,23 @@ classDiagram
         +validateForm() List~String~
     }
 
+    class RegisterBusinessViewModel {
+        -BusinessRepository _businessRepository
+        -UserRepository _userRepository
+        +String name
+        +String description
+        +String latitude
+        +String longitude
+        +String imageUrl
+        +Category? selectedCategory
+        +bool isLoading
+        +List~String~ errors
+        +Business? createdBusiness
+        +selectCategory(Category? value) void
+        +validateForm() List~String~
+        +registerBusiness() Future~bool~
+    }
+
     class HomeViewModel {
         -BusinessRepository _businessRepository
         -List~Business~ _allBusinesses
@@ -305,10 +341,30 @@ classDiagram
 
     class BusinessDetailsViewModel {
         -BusinessRepository _businessRepository
+        -ReviewRepository _reviewRepository
+        -UserRepository _userRepository
         +Business business
         +bool isLoading
+        +String? deletingReviewId
         +String? error
         +loadDetails() Future~void~
+        +canDeleteReview(Review review) bool
+        +deleteReview(Review review) Future~bool~
+    }
+
+    class WriteReviewViewModel {
+        -ReviewRepository _reviewRepository
+        -UserRepository _userRepository
+        +Business business
+        +int rating
+        +String comment
+        +bool isLoading
+        +String? errorMessage
+        +canSubmit bool
+        +setRating(int value) void
+        +updateComment(String value) void
+        +validateForm() bool
+        +submitReview() Future~bool~
     }
 
     class EventsViewModel {
@@ -348,6 +404,20 @@ classDiagram
         +isOwner bool
     }
 
+    class AddProductViewModel {
+        -BusinessRepository _businessRepository
+        -UserRepository _userRepository
+        +Business business
+        +String name
+        +String price
+        +String description
+        +bool isLoading
+        +List~String~ errors
+        +Product? createdProduct
+        +validateForm() List~String~
+        +addProduct() Future~bool~
+    }
+
     %% ============================
     %% VISTAS
     %% ============================
@@ -372,6 +442,16 @@ classDiagram
         -_submit() Future~void~
     }
 
+    class RegisterBusinessView {
+        -RegisterBusinessViewModel _viewModel
+        -TextEditingController _nameController
+        -TextEditingController _descriptionController
+        -TextEditingController _latitudeController
+        -TextEditingController _longitudeController
+        -TextEditingController _imageUrlController
+        -_submit() Future~void~
+    }
+
     class HomeView {
         -HomeViewModel _viewModel
         -TextEditingController _searchController
@@ -381,6 +461,12 @@ classDiagram
     class BusinessDetailsView {
         +Business business
         -BusinessDetailsViewModel _viewModel
+    }
+
+    class WriteReviewView {
+        -WriteReviewViewModel _viewModel
+        -TextEditingController _commentController
+        -_submit() Future~void~
     }
 
     class EventsView {
@@ -403,6 +489,15 @@ classDiagram
         +Business? routeArgument
         -BusinessMenuViewModel _viewModel
         +build(BuildContext context) Widget
+    }
+
+    class AddProductView {
+        +Business? routeArgument
+        -AddProductViewModel _viewModel
+        -TextEditingController _nameController
+        -TextEditingController _priceController
+        -TextEditingController _descriptionController
+        -_submit() Future~void~
     }
 
     class CimaNavigationScaffold {
@@ -446,11 +541,17 @@ classDiagram
     BusinessService --> ApiService : uses
     BusinessService --> Business : maps JSON
 
+    ReviewService --> ApiService : uses
+    ReviewService --> Review : maps JSON
+
     EventService --> ApiService : uses
     EventService --> Event : maps JSON
 
     BusinessRepository --> BusinessService : wraps API access
     BusinessRepository --> Business : local fallback data
+    ReviewRepository --> ReviewService : wraps API access
+    ReviewRepository --> BusinessRepository : updates local business reviews
+    ReviewRepository --> Review : creates/deletes
     EventRepository --> EventService : wraps API access
     EventRepository --> Event : local fallback data
     UserRepository --> AuthService : wraps auth/session
@@ -460,12 +561,20 @@ classDiagram
     %% ============================
     LoginViewModel --> UserRepository : login state
     RegisterUserViewModel --> UserRepository : register state
+    RegisterBusinessViewModel --> BusinessRepository : create business
+    RegisterBusinessViewModel --> UserRepository : current owner/permission
     HomeViewModel --> BusinessRepository : list/search/filter
     BusinessDetailsViewModel --> BusinessRepository : load full detail
+    BusinessDetailsViewModel --> ReviewRepository : delete review
+    BusinessDetailsViewModel --> UserRepository : current user permissions
+    WriteReviewViewModel --> ReviewRepository : submit review
+    WriteReviewViewModel --> UserRepository : current author
     EventsViewModel --> EventRepository : list events
     EventDetailsViewModel --> BusinessRepository : participant previews
     BusinessMenuViewModel --> UserRepository : owner permissions
     UserProfileViewModel --> UserRepository : current session/logout
+    AddProductViewModel --> BusinessRepository : update product list
+    AddProductViewModel --> UserRepository : current owner permission
 
     %% ============================
     %% RELACIONES VIEW -> VIEWMODEL/REPOSITORIO
@@ -473,18 +582,23 @@ classDiagram
     App --> UserRepository : initialRoute auth check
     LoginView --> LoginViewModel : owns
     RegisterUserView --> RegisterUserViewModel : owns
+    RegisterBusinessView --> RegisterBusinessViewModel : owns
     HomeView --> HomeViewModel : owns
     BusinessDetailsView --> BusinessDetailsViewModel : owns
+    WriteReviewView --> WriteReviewViewModel : owns
     EventsView --> EventsViewModel : owns
     EventDetailsView --> EventDetailsViewModel : owns
     UserProfileView --> UserProfileViewModel : owns
     BusinessMenuView --> BusinessMenuViewModel : owns
     BusinessMenuView --> BusinessRepository : fallback business
+    AddProductView --> AddProductViewModel : owns
 
     HomeView ..> BusinessDetailsView : opens selected business
     EventsView ..> EventDetailsView : opens selected event
     EventDetailsView ..> BusinessDetailsView : opens participant business
     BusinessDetailsView ..> BusinessMenuView : opens business menu with Business argument
+    BusinessDetailsView ..> WriteReviewView : opens with Business argument
+    BusinessMenuView ..> AddProductView : opens with Business argument
     UserProfileView ..> LoginView : logout redirects
     HomeView --> CimaNavigationScaffold : wrapped by
     EventsView --> CimaNavigationScaffold : wrapped by
@@ -552,12 +666,47 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+    participant MyBusinesses as MyBusinessesView
+    participant Register as RegisterBusinessView
+    participant VM as RegisterBusinessViewModel
+    participant UserRepo as UserRepository
+    participant BusinessRepo as BusinessRepository
+    participant BusinessSvc as BusinessService
+    participant Api as ApiService
+
+    MyBusinesses->>Register: open /register-business
+    Register->>VM: updateName/description/location/category
+    Register->>VM: registerBusiness()
+    VM->>VM: validateForm()
+    VM->>UserRepo: getCurrentSession()
+    alt Usuario sin permiso createBusiness
+        VM-->>Register: error "No tienes permiso para registrar negocios"
+    else Usuario vendedor/admin
+        VM->>BusinessRepo: createBusiness(business)
+        BusinessRepo->>BusinessSvc: createBusiness(business)
+        BusinessSvc->>Api: POST /api/v1/businesses/
+        Api-->>BusinessSvc: BusinessDetailResponse
+        BusinessSvc-->>BusinessRepo: Business
+        BusinessRepo-->>VM: Business saved locally
+        VM-->>Register: success
+        Register-->>MyBusinesses: pop(true)
+        MyBusinesses->>MyBusinesses: refresh local list
+    end
+```
+
+```mermaid
+sequenceDiagram
     participant Details as BusinessDetailsView
     participant VM as BusinessDetailsViewModel
     participant BusinessRepo as BusinessRepository
     participant BusinessSvc as BusinessService
+    participant ReviewRepo as ReviewRepository
+    participant ReviewSvc as ReviewService
+    participant Api as ApiService
     participant Menu as BusinessMenuView
     participant MenuVM as BusinessMenuViewModel
+    participant AddProduct as AddProductView
+    participant ProductVM as AddProductViewModel
     participant UserRepo as UserRepository
 
     Details->>VM: loadDetails()
@@ -565,13 +714,71 @@ sequenceDiagram
     BusinessRepo->>BusinessSvc: getBusiness(business.id)
     BusinessSvc-->>BusinessRepo: BusinessDetailResponse
     BusinessRepo-->>VM: Business
+    Details->>VM: canDeleteReview(review)
+    alt Autor de la resena o permiso deleteAnyReview
+        Details->>Details: show delete action
+        Details->>VM: deleteReview(review)
+        VM->>ReviewRepo: deleteReview(review.id, user.id, canDeleteAny)
+        ReviewRepo->>ReviewSvc: deleteReview(review.id)
+        ReviewSvc->>Api: DELETE /api/v1/reviews/{review_id}
+        Api-->>ReviewSvc: 204 No Content
+        ReviewRepo-->>VM: true + local reviews updated
+        VM-->>Details: reviews without deleted item
+    else Sin permiso
+        Details->>Details: hide delete action
+    end
     Details->>Menu: open with Business argument
     Menu->>MenuVM: isOwner
     MenuVM->>UserRepo: getCurrentSession()
     alt currentUser.id == business.owner.id
         Menu-->>Menu: show add product/category actions
+        Menu->>AddProduct: open with Business argument
+        AddProduct->>ProductVM: updateName/price/description
+        AddProduct->>ProductVM: addProduct()
+        ProductVM->>UserRepo: getCurrentSession()
+        ProductVM->>BusinessRepo: addProduct(business.id, product)
+        BusinessRepo->>BusinessSvc: updateBusinessProducts(business, products + product)
+        BusinessSvc->>Api: PUT /api/v1/businesses/{business_id}
+        Api-->>BusinessSvc: BusinessDetailResponse
+        BusinessSvc-->>BusinessRepo: Business
+        BusinessRepo-->>ProductVM: Business with new product
+        ProductVM-->>AddProduct: success
+        AddProduct-->>Menu: pop(true)
+        Menu->>Menu: refresh product list
     else Cliente o no duenio
         Menu-->>Menu: hide owner-only actions
+    end
+```
+
+```mermaid
+sequenceDiagram
+    participant Details as BusinessDetailsView
+    participant Write as WriteReviewView
+    participant VM as WriteReviewViewModel
+    participant UserRepo as UserRepository
+    participant ReviewRepo as ReviewRepository
+    participant ReviewSvc as ReviewService
+    participant Api as ApiService
+    participant BusinessRepo as BusinessRepository
+
+    Details->>Write: open with Business argument
+    Write->>VM: setRating(value), updateComment(text)
+    Write->>VM: submitReview()
+    VM->>VM: validateForm()
+    VM->>UserRepo: getCurrentSession()
+    VM->>ReviewRepo: hasReviewForBusiness(business.id, user.id)
+    alt Usuario ya escribio resena para ese negocio
+        VM-->>Write: error "Ya escribiste una resena para este negocio"
+    else Sin resena previa
+    VM->>ReviewRepo: submitReview(review)
+    ReviewRepo->>ReviewSvc: createReview(review)
+    ReviewSvc->>Api: POST /api/v1/reviews/
+    Api-->>ReviewSvc: ReviewResponse
+    ReviewSvc-->>ReviewRepo: Review
+    ReviewRepo->>BusinessRepo: update local business reviews
+    ReviewRepo-->>VM: Review
+    VM-->>Write: success
+    Write-->>Details: pop(true)
     end
 ```
 
